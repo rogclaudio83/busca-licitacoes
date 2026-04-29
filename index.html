@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buscador – Concurso Público</title>
+  <style>
+    /* ── Reset & base ────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #2b6cb0;
+    }
+    header p {
+      font-size: 0.95rem;
+      color: #718096;
+      margin-top: 0.3rem;
+    }
+
+    /* ── Search card ─────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      padding: 1.8rem;
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0.6rem;
+    }
+
+    #query {
+      flex: 1;
+      padding: 0.7rem 1rem;
+      border: 1.5px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #query:focus { border-color: #2b6cb0; }
+
+    button#searchBtn {
+      padding: 0.7rem 1.3rem;
+      background: #2b6cb0;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background .2s;
+      white-space: nowrap;
+    }
+    button#searchBtn:hover  { background: #2c5282; }
+    button#searchBtn:disabled { background: #a0aec0; cursor: not-allowed; }
+
+    /* ── Result area ─────────────────────────────────────────── */
+    #result {
+      margin-top: 1.4rem;
+      display: none;
+    }
+
+    #result .label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #718096;
+      margin-bottom: 0.5rem;
+    }
+
+    #result .answer {
+      background: #ebf4ff;
+      border-left: 4px solid #2b6cb0;
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      font-size: 0.97rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    /* ── Spinner ─────────────────────────────────────────────── */
+    .spinner {
+      display: none;
+      margin-top: 1.2rem;
+      text-align: center;
+      color: #718096;
+      font-size: 0.9rem;
+    }
+    .spinner::before {
+      content: "";
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 3px solid #cbd5e0;
+      border-top-color: #2b6cb0;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error ───────────────────────────────────────────────── */
+    #error {
+      display: none;
+      margin-top: 1rem;
+      padding: 0.8rem 1rem;
+      background: #fff5f5;
+      border-left: 4px solid #c53030;
+      border-radius: 6px;
+      color: #c53030;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🔍 Buscador de Concurso</h1>
+    <p>Tire dúvidas sobre Administração Pública com IA</p>
+  </header>
+
+  <div class="card">
+    <div class="input-row">
+      <input
+        id="query"
+        type="text"
+        placeholder="Ex.: Qual a diferença entre ato administrativo vinculado e discricionário?"
+        autofocus
+      />
+      <button id="searchBtn" onclick="buscar()">Buscar</button>
+    </div>
+
+    <div class="spinner" id="spinner">Consultando a IA…</div>
+    <div id="error"></div>
+
+    <div id="result">
+      <div class="label">Resposta</div>
+      <div class="answer" id="answer"></div>
+    </div>
+  </div>
+
+  <script>
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │  ⚙️  VARIÁVEL DE CONFIGURAÇÃO                               │
+    // │  Troque o valor abaixo pela URL que o Render vai te dar.    │
+    // │  Exemplo: "https://meu-app.onrender.com"                    │
+    // └─────────────────────────────────────────────────────────────┘
+    const API_BASE_URL = "https://SEU-APP.onrender.com";
+
+    const queryInput  = document.getElementById("query");
+    const searchBtn   = document.getElementById("searchBtn");
+    const resultBox   = document.getElementById("result");
+    const answerBox   = document.getElementById("answer");
+    const spinner     = document.getElementById("spinner");
+    const errorBox    = document.getElementById("error");
+
+    // Permite pressionar Enter para buscar
+    queryInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") buscar();
+    });
+
+    async function buscar() {
+      const query = queryInput.value.trim();
+      if (!query) return;
+
+      // Reset UI
+      resultBox.style.display  = "none";
+      errorBox.style.display   = "none";
+      spinner.style.display    = "block";
+      searchBtn.disabled       = true;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/search`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`Erro do servidor: ${res.status}`);
+        }
+
+        const data = await res.json();
+        answerBox.textContent    = data.result;
+        resultBox.style.display  = "block";
+
+      } catch (err) {
+        errorBox.textContent   = `Não foi possível obter a resposta. Verifique se o servidor está ativo.\n(${err.message})`;
+        errorBox.style.display = "block";
+      } finally {
+        spinner.style.display  = "none";
+        searchBtn.disabled     = false;
+      }
+    }
+  </script>
+
+</body>
+</html>
