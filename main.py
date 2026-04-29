@@ -6,7 +6,7 @@ import os
 
 app = FastAPI()
 
-# Libera o acesso para o seu navegador não bloquear o site
+# Liberação de segurança para o navegador
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,23 +14,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ESTA É A CHAVE: Faz o link do Render abrir o seu index.html
+# ROTA RAIZ: É aqui que resolvemos o "Not Found"
 @app.get("/")
 async def principal():
-    return FileResponse('index.html')
+    # Busca o caminho exato onde o arquivo index.html está no servidor
+    caminho = os.path.join(os.path.dirname(__file__), "index.html")
+    if os.path.exists(caminho):
+        return FileResponse(caminho)
+    return {"erro": "O arquivo index.html não foi encontrado na raiz do servidor."}
 
+# ROTA DE BUSCA: Conversa com o Governo
 @app.get("/buscar")
 def buscar(produto: str = Query(...)):
-    # Busca real no Governo Federal (PNCP) dos últimos 5 meses
     url = f"https://pncp.gov.br{produto}&pagina=1"
-    
     try:
         response = requests.get(url, timeout=15)
         dados = response.json()
         
-        resultado_final = []
+        lista_final = []
         for item in dados.get('resultado', []):
-            resultado_final.append({
+            lista_final.append({
                 "id": item.get('id'),
                 "preco": float(item.get('valorTotal', 0)),
                 "orgao": item.get('orgaoEntidade', {}).get('razaoSocial', 'Órgão não identificado'),
@@ -40,6 +43,6 @@ def buscar(produto: str = Query(...)):
                 "cnpj": "-"
             })
             
-        return {"sucesso": True, "mais_opcoes": resultado_final, "sugestao_ideal": resultado_final[:3]}
+        return {"sucesso": True, "mais_opcoes": lista_final, "sugestao_ideal": lista_final[:3]}
     except Exception as e:
         return {"sucesso": False, "erro": str(e)}
