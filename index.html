@@ -3,110 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GovPreços - Auditoria de Licitações</title>
-    <!-- Bibliotecas -->
+    <title>GovPreços // Auditoria</title>
     <script src="https://cloudflare.com"></script>
     <link href="https://googleapis.com" rel="stylesheet">
-    
     <style>
-        :root {
-            --bg: #05080f; --surface: #0d1420; --accent: #00b4ff;
-            --success: #00e5a0; --text: #dce8f5; --muted: #4a6080;
-            --border: rgba(0, 180, 255, 0.15);
-        }
+        :root { --bg: #05080f; --surface: #0d1420; --accent: #00b4ff; --success: #00e5a0; --text: #dce8f5; --border: rgba(0, 180, 255, 0.15); --muted: #4a6080; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; overflow-x: hidden; }
-        
-        /* Telas */
+        body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; }
         .screen { display: none; min-height: 100vh; flex-direction: column; }
         .active { display: flex; }
-
-        /* Login Profissional */
         #login-screen { align-items: center; justify-content: center; background: radial-gradient(circle at top, #00253a, var(--bg)); }
-        .login-box { background: var(--surface); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 100%; max-width: 380px; box-shadow: 0 10px 50px rgba(0,0,0,0.5); }
-        .login-box h2 { font-family: 'IBM Plex Mono'; margin-bottom: 10px; text-align: center; color: var(--accent); letter-spacing: 2px; }
-        .login-box p { text-align: center; font-size: 12px; color: var(--muted); margin-bottom: 25px; }
-        input { width: 100%; padding: 14px; margin-bottom: 15px; background: #000; border: 1px solid var(--border); color: white; border-radius: 8px; outline: none; }
-        input:focus { border-color: var(--accent); }
-        .btn-main { width: 100%; padding: 14px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'IBM Plex Mono'; transition: 0.3s; }
-        .btn-main:hover { background: #008fcc; transform: translateY(-2px); }
-
-        /* Dashboard Layout */
-        header { padding: 15px 40px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .logo-text { font-family: 'IBM Plex Mono'; font-weight: bold; color: var(--accent); font-size: 1.1rem; }
-        
-        .container { padding: 30px 40px; max-width: 1200px; margin: 0 auto; width: 100%; }
-        
-        /* Busca */
-        .search-card { background: var(--surface); padding: 25px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 30px; display: flex; gap: 15px; align-items: flex-end; }
-        .input-group { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-        .input-group label { font-size: 10px; color: var(--accent); font-family: 'IBM Plex Mono'; font-weight: bold; }
-        
-        /* Resultados */
-        .analysis-badge { padding: 20px; border-radius: 10px; margin-bottom: 25px; font-family: 'IBM Plex Mono'; font-size: 0.95rem; text-align: center; border: 1px solid transparent; }
-        .ok { background: rgba(0, 229, 160, 0.05); border-color: var(--success); color: var(--success); }
-        .warn { background: rgba(255, 79, 79, 0.05); border-color: #ff4f4f; color: #ff4f4f; }
-        
-        .card { background: var(--surface); border: 1px solid var(--border); padding: 20px; border-radius: 10px; margin-bottom: 12px; position: relative; overflow: hidden; }
-        .card:hover { border-color: var(--accent); background: var(--surface2); }
-        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-        .price { color: var(--success); font-family: 'IBM Plex Mono'; font-weight: bold; font-size: 1.4rem; }
-        .orgao-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; }
-        .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; font-size: 11px; color: var(--muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; }
-        .data-item b { color: var(--text); font-family: 'IBM Plex Mono'; margin-left: 5px; }
-
-        .btn-pdf { background: rgba(0, 180, 255, 0.1); color: var(--accent); border: 1px solid var(--accent); padding: 12px; border-radius: 8px; cursor: pointer; margin-bottom: 25px; width: 100%; font-weight: bold; font-family: 'IBM Plex Mono'; transition: 0.3s; }
-        .btn-pdf:hover { background: var(--accent); color: #000; }
+        .login-box { background: var(--surface); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 350px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        input { width: 100%; background: #000; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; outline: none; }
+        .btn-main { width: 100%; padding: 14px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'IBM Plex Mono'; }
+        header { padding: 15px 40px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .container { padding: 30px 40px; max-width: 1100px; margin: 0 auto; width: 100%; }
+        .search-card { background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; gap: 15px; }
+        .card { background: var(--surface); border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-top: 15px; }
+        .price { color: var(--success); font-family: 'IBM Plex Mono'; font-weight: bold; font-size: 1.3rem; }
     </style>
 </head>
 <body>
 
-    <!-- LOGIN -->
+    <!-- TELA DE LOGIN -->
     <div id="login-screen" class="screen active">
         <div class="login-box">
-            <h2>GOV.DATA</h2>
-            <p>Auditoria de Preços Lei 14.133</p>
-            <input type="text" id="user" placeholder="Usuário (rogerio)">
-            <input type="password" id="pass" placeholder="Senha (1234)">
-            <button class="btn-main" onclick="login()">AUTENTICAR NO PORTAL</button>
-            <p id="err" style="color:#ff4f4f; margin-top:15px; display:none;">Credenciais inválidas.</p>
+            <h2 style="color:var(--accent); text-align:center; font-family:'IBM Plex Mono'; margin-bottom:20px;">GOV.DATA</h2>
+            <input type="text" id="user" placeholder="Usuário">
+            <input type="password" id="pass" placeholder="Senha">
+            <button class="btn-main" onclick="login()">ENTRAR NO SISTEMA</button>
+            <p id="err" style="color:red; font-size:11px; text-align:center; margin-top:10px; display:none;">Credenciais inválidas.</p>
         </div>
     </div>
 
-    <!-- APP -->
+    <!-- TELA DO APLICATIVO -->
     <div id="app-screen" class="screen">
         <header>
-            <div class="logo-text">GOV_PREÇOS // SISTEMA DE PESQUISA</div>
-            <button onclick="location.reload()" style="background:none; border:1px solid var(--muted); color:var(--muted); padding:6px 15px; border-radius:5px; cursor:pointer; font-size:11px;">LOGOUT</button>
+            <div style="color:var(--accent); font-family:'IBM Plex Mono'; font-weight:bold;">AUDITORIA // PNCP</div>
+            <button onclick="location.reload()" style="background:none; border:1px solid var(--muted); color:var(--muted); padding:5px 10px; cursor:pointer; border-radius:4px; font-size:11px;">LOGOUT</button>
         </header>
-
         <div class="container">
             <div class="search-card">
-                <div class="input-group">
-                    <label>PRODUTO OU SERVIÇO</label>
-                    <input type="text" id="item" placeholder="Ex: Cadeira Ergonômica" style="margin-bottom:0;">
-                </div>
-                <div class="input-group" style="max-width: 200px;">
-                    <label>VALOR MÍNIMO (OPCIONAL)</label>
-                    <input type="number" id="v_min" placeholder="R$ 0,00" style="margin-bottom:0;">
-                </div>
-                <button class="btn-search" onclick="buscar()" style="height: 47px; width: 60px; background: var(--accent); border: none; border-radius: 8px; cursor: pointer; font-size: 20px;">🔍</button>
+                <input type="text" id="item" placeholder="Digite o produto (ex: Cadeira)">
+                <button onclick="buscar()" style="background:var(--accent); border:none; padding:0 25px; border-radius:6px; cursor:pointer; font-weight:bold;">BUSCAR</button>
             </div>
-
-            <div id="status" style="margin-bottom:20px; font-family:'IBM Plex Mono'; font-size:11px; color:var(--accent);"></div>
-            <div id="analise"></div>
-            <div id="action-area" style="display:none;">
-                <button class="btn-pdf" onclick="gerarPDF()">📄 GERAR RELATÓRIO TÉCNICO PDF/A</button>
-            </div>
+            <div id="status" style="margin-top:15px; font-size:12px; color:var(--accent); font-family:'IBM Plex Mono';"></div>
             <div id="resultados"></div>
         </div>
     </div>
 
     <script>
-        // CONFIGURAÇÃO: COLOQUE SEU LINK DO RENDER AQUI
-        const API_URL = "https://radar-de-precos-eh36.onrender.com";
-
-        let dadosGlobal = [];
+        // LÓGICA INTELIGENTE: Identifica a URL do Render automaticamente
+        const API_URL = window.location.origin + "/buscar";
 
         function login() {
             const u = document.getElementById('user').value;
@@ -121,75 +69,38 @@
 
         async function buscar() {
             const termo = document.getElementById('item').value;
-            const vMin = document.getElementById('v_min').value;
             if(!termo) return;
-
-            document.getElementById('status').innerText = ">> CONSULTANDO API NACIONAL...";
+            
+            document.getElementById('status').innerText = ">> CONECTANDO AO SERVIDOR...";
             document.getElementById('resultados').innerHTML = "";
-            document.getElementById('action-area').style.display = "none";
-            document.getElementById('analise').innerHTML = "";
 
             try {
-                const url = `${API_URL}?produto=${encodeURIComponent(termo)}${vMin ? '&valor_minimo='+vMin : ''}`;
-                const response = await fetch(url);
+                const response = await fetch(`${API_URL}?produto=${encodeURIComponent(termo)}`);
+                
+                if (!response.ok) throw new Error("Erro no servidor");
+                
                 const res = await response.json();
                 
                 if(res.sucesso && res.mais_opcoes.length > 0) {
-                    dadosGlobal = res.mais_opcoes;
-                    document.getElementById('status').innerText = `>> ${res.mais_opcoes.length} TRANSAÇÕES ENCONTRADAS.`;
-                    document.getElementById('action-area').style.display = "block";
-                    renderizar(res.mais_opcoes);
+                    document.getElementById('status').innerText = `>> ${res.mais_opcoes.length} ITENS ENCONTRADOS NO PNCP.`;
+                    document.getElementById('resultados').innerHTML = res.mais_opcoes.map(t => `
+                        <div class="card">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <div style="font-weight:600; font-size:14px; max-width:70%; color:#fff;">${t.orgao}</div>
+                                <div class="price">R$ ${t.preco.toFixed(2)}</div>
+                            </div>
+                            <div style="font-size:11px; color:var(--muted); margin-top:10px;">
+                                DATA: ${t.data} | ESFERA: ${t.esfera} | FORNECEDOR: ${t.fornecedor}
+                            </div>
+                        </div>
+                    `).join('');
                 } else {
-                    document.getElementById('status').innerText = ">> NENHUMA TRANSAÇÃO RECENTE ENCONTRADA.";
+                    document.getElementById('status').innerText = ">> NENHUMA TRANSAÇÃO ENCONTRADA.";
                 }
             } catch (e) {
-                document.getElementById('status').innerText = ">> ERRO: SERVIDOR RENDER OFFLINE OU URL INCORRETA.";
+                console.error(e);
+                document.getElementById('status').innerText = ">> ERRO: SERVIDOR AINDA INICIANDO OU INDISPONÍVEL.";
             }
-        }
-
-        function renderizar(dados) {
-            const container = document.getElementById('resultados');
-            const analiseDiv = document.getElementById('analise');
-            
-            // Regra dos 20% (dos 3 menores)
-            const top3 = dados.slice(0,3);
-            if(top3.length >= 2) {
-                const variacao = ((top3[top3.length-1].preco - top3[0].preco) / top3[0].preco) * 100;
-                const apto = variacao <= 20;
-                analiseDiv.innerHTML = `
-                    <div class="analysis-badge ${apto ? 'ok' : 'warn'}">
-                        ${apto ? '✅ RESULTADO ANALÍTICO: APTO' : '⚠️ ALERTA: VARIAÇÃO ACIMA DE 20%'} // DIFERENÇA: ${variacao.toFixed(1)}%
-                    </div>`;
-            }
-
-            container.innerHTML = dados.map(t => `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="orgao-name">${t.orgao}</div>
-                        <div class="price">R$ ${t.preco.toFixed(2)}</div>
-                    </div>
-                    <div class="data-grid">
-                        <div class="data-item">DATA:<b>${t.data}</b></div>
-                        <div class="data-item">ESFERA:<b>${t.esfera}</b></div>
-                        <div class="data-item">FORNECEDOR:<b>${t.fornecedor}</b></div>
-                    </div>
-                </div>`).join('');
-        }
-
-        function gerarPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFont("helvetica", "bold");
-            doc.text("RELATÓRIO TÉCNICO DE PREÇOS PÚBLICOS (PNCP)", 20, 20);
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-            let y = 40;
-            dadosGlobal.slice(0, 20).forEach(d => {
-                if(y > 280) { doc.addPage(); y = 20; }
-                doc.text(`R$ ${d.preco.toFixed(2)} - ${d.data} - ${d.orgao.substring(0, 70)}...`, 20, y);
-                y += 8;
-            });
-            doc.save("Relatorio_Auditoria_Gov.pdf");
         }
     </script>
 </body>
