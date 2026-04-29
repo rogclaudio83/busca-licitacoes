@@ -2,188 +2,194 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Pesquisa de Preços Gov</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GovPreços - Auditoria de Licitações</title>
+    <!-- Bibliotecas -->
     <script src="https://cloudflare.com"></script>
     <link href="https://googleapis.com" rel="stylesheet">
+    
     <style>
         :root {
-            --bg: #05080f; --surface: #0d1420; --surface2: #131d2e;
-            --border: rgba(0, 180, 255, 0.13); --accent: #00b4ff;
-            --accent2: #00e5a0; --danger: #ff4f4f; --warn: #ffb84f;
-            --text: #dce8f5; --muted: #4a6080;
-            --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
+            --bg: #05080f; --surface: #0d1420; --accent: #00b4ff;
+            --success: #00e5a0; --text: #dce8f5; --muted: #4a6080;
+            --border: rgba(0, 180, 255, 0.15);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); }
+        body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; overflow-x: hidden; }
         
         /* Telas */
-        #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: radial-gradient(ellipse at 50% 0%, #00253a 0%, var(--bg) 65%); padding: 20px; }
-        #app-screen { display: none; flex-direction: column; min-height: 100vh; }
-        
-        /* Login */
-        .login-box { width: 100%; max-width: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 26px; display: flex; flex-direction: column; gap: 14px; }
-        .lbl { font-size: 10px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; font-family: var(--mono); margin-bottom: 5px; display: block; }
-        input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 13px; color: var(--text); outline: none; }
-        .btn-primary { background: var(--accent); color: var(--bg); border: none; border-radius: 8px; padding: 14px; font-weight: 700; font-family: var(--mono); cursor: pointer; letter-spacing: 1px; }
+        .screen { display: none; min-height: 100vh; flex-direction: column; }
+        .active { display: flex; }
 
-        /* App Layout */
-        .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 15px; display: flex; justify-content: space-between; align-items: center; sticky: top; }
-        .search-area { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .search-row { display: flex; gap: 10px; }
-        .search-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: white; }
-        .btn-search { background: var(--accent); color: var(--bg); border: none; border-radius: 10px; padding: 0 15px; cursor: pointer; }
+        /* Login Profissional */
+        #login-screen { align-items: center; justify-content: center; background: radial-gradient(circle at top, #00253a, var(--bg)); }
+        .login-box { background: var(--surface); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 100%; max-width: 380px; box-shadow: 0 10px 50px rgba(0,0,0,0.5); }
+        .login-box h2 { font-family: 'IBM Plex Mono'; margin-bottom: 10px; text-align: center; color: var(--accent); letter-spacing: 2px; }
+        .login-box p { text-align: center; font-size: 12px; color: var(--muted); margin-bottom: 25px; }
+        input { width: 100%; padding: 14px; margin-bottom: 15px; background: #000; border: 1px solid var(--border); color: white; border-radius: 8px; outline: none; }
+        input:focus { border-color: var(--accent); }
+        .btn-main { width: 100%; padding: 14px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'IBM Plex Mono'; transition: 0.3s; }
+        .btn-main:hover { background: #008fcc; transform: translateY(-2px); }
 
-        /* Analise e Cards */
-        .results { padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .analysis-card { border-radius: 12px; padding: 15px; border: 1px solid var(--border); margin-bottom: 10px; }
-        .analysis-card.ok { border-color: var(--accent2); background: rgba(0, 229, 160, 0.05); }
-        .analysis-card.warn { border-color: var(--danger); background: rgba(255, 79, 79, 0.05); }
-        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 10px; }
-        .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
-        .card-orgao { font-size: 13px; font-weight: 600; color: var(--text); }
-        .card-valor { font-family: var(--mono); color: var(--accent2); font-weight: 700; }
-        .row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: var(--muted); }
-        .row span:last-child { color: var(--text); font-family: var(--mono); }
+        /* Dashboard Layout */
+        header { padding: 15px 40px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .logo-text { font-family: 'IBM Plex Mono'; font-weight: bold; color: var(--accent); font-size: 1.1rem; }
         
-        .status-bar { margin: 0 15px; padding: 10px; border-radius: 8px; font-size: 12px; font-family: var(--mono); display: none; }
-        .btn-export { background: var(--surface2); color: var(--accent); border: 1px solid var(--border); padding: 12px; border-radius: 10px; cursor: pointer; font-family: var(--mono); margin-top: 10px; }
+        .container { padding: 30px 40px; max-width: 1200px; margin: 0 auto; width: 100%; }
+        
+        /* Busca */
+        .search-card { background: var(--surface); padding: 25px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 30px; display: flex; gap: 15px; align-items: flex-end; }
+        .input-group { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .input-group label { font-size: 10px; color: var(--accent); font-family: 'IBM Plex Mono'; font-weight: bold; }
+        
+        /* Resultados */
+        .analysis-badge { padding: 20px; border-radius: 10px; margin-bottom: 25px; font-family: 'IBM Plex Mono'; font-size: 0.95rem; text-align: center; border: 1px solid transparent; }
+        .ok { background: rgba(0, 229, 160, 0.05); border-color: var(--success); color: var(--success); }
+        .warn { background: rgba(255, 79, 79, 0.05); border-color: #ff4f4f; color: #ff4f4f; }
+        
+        .card { background: var(--surface); border: 1px solid var(--border); padding: 20px; border-radius: 10px; margin-bottom: 12px; position: relative; overflow: hidden; }
+        .card:hover { border-color: var(--accent); background: var(--surface2); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .price { color: var(--success); font-family: 'IBM Plex Mono'; font-weight: bold; font-size: 1.4rem; }
+        .orgao-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; }
+        .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; font-size: 11px; color: var(--muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; }
+        .data-item b { color: var(--text); font-family: 'IBM Plex Mono'; margin-left: 5px; }
+
+        .btn-pdf { background: rgba(0, 180, 255, 0.1); color: var(--accent); border: 1px solid var(--accent); padding: 12px; border-radius: 8px; cursor: pointer; margin-bottom: 25px; width: 100%; font-weight: bold; font-family: 'IBM Plex Mono'; transition: 0.3s; }
+        .btn-pdf:hover { background: var(--accent); color: #000; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <div style="text-align:center; margin-bottom: 20px;">
-            <div style="background:var(--accent); color:var(--bg); font-size:10px; padding:4px 10px; font-family:var(--mono); letter-spacing:2px; display:inline-block; border-radius:2px;">GOV · LICITAÇÕES</div>
-            <h1 style="font-family:var(--mono); color:white; margin-top:10px;">Pesquisa de Preços</h1>
-        </div>
+    <!-- LOGIN -->
+    <div id="login-screen" class="screen active">
         <div class="login-box">
-            <div><label class="lbl">Usuário</label><input type="text" id="inp-user" placeholder="rogerio"></div>
-            <div><label class="lbl">Senha</label><input type="password" id="inp-pass" placeholder="****"></div>
-            <div id="login-err" style="color:var(--danger); font-size:11px; display:none;">Credenciais incorretas.</div>
-            <button class="btn-primary" onclick="doLogin()">ENTRAR</button>
+            <h2>GOV.DATA</h2>
+            <p>Auditoria de Preços Lei 14.133</p>
+            <input type="text" id="user" placeholder="Usuário (rogerio)">
+            <input type="password" id="pass" placeholder="Senha (1234)">
+            <button class="btn-main" onclick="login()">AUTENTICAR NO PORTAL</button>
+            <p id="err" style="color:#ff4f4f; margin-top:15px; display:none;">Credenciais inválidas.</p>
         </div>
     </div>
 
-    <div id="app-screen">
-        <div class="topbar">
-            <div>
-                <div style="font-family:var(--mono); color:var(--accent); font-size:14px; font-weight:700;">PREÇOS GOV</div>
-                <div style="font-size:10px; color:var(--muted);">Lei 14.133/2021 · Últimos 5 meses</div>
-            </div>
-            <button onclick="doLogout()" style="background:none; border:1px solid var(--border); color:var(--muted); padding:5px 10px; border-radius:5px; cursor:pointer;">SAIR</button>
-        </div>
+    <!-- APP -->
+    <div id="app-screen" class="screen">
+        <header>
+            <div class="logo-text">GOV_PREÇOS // SISTEMA DE PESQUISA</div>
+            <button onclick="location.reload()" style="background:none; border:1px solid var(--muted); color:var(--muted); padding:6px 15px; border-radius:5px; cursor:pointer; font-size:11px;">LOGOUT</button>
+        </header>
 
-        <div class="search-area">
-            <div class="search-row">
-                <input class="search-input" id="inp-search" type="text" placeholder="Ex: Cadeira Ergonômica">
-                <button class="btn-search" onclick="buscar()">🔍</button>
+        <div class="container">
+            <div class="search-card">
+                <div class="input-group">
+                    <label>PRODUTO OU SERVIÇO</label>
+                    <input type="text" id="item" placeholder="Ex: Cadeira Ergonômica" style="margin-bottom:0;">
+                </div>
+                <div class="input-group" style="max-width: 200px;">
+                    <label>VALOR MÍNIMO (OPCIONAL)</label>
+                    <input type="number" id="v_min" placeholder="R$ 0,00" style="margin-bottom:0;">
+                </div>
+                <button class="btn-search" onclick="buscar()" style="height: 47px; width: 60px; background: var(--accent); border: none; border-radius: 8px; cursor: pointer; font-size: 20px;">🔍</button>
             </div>
-        </div>
 
-        <div id="status-bar" class="status-bar"></div>
-        <div class="results" id="results"></div>
+            <div id="status" style="margin-bottom:20px; font-family:'IBM Plex Mono'; font-size:11px; color:var(--accent);"></div>
+            <div id="analise"></div>
+            <div id="action-area" style="display:none;">
+                <button class="btn-pdf" onclick="gerarPDF()">📄 GERAR RELATÓRIO TÉCNICO PDF/A</button>
+            </div>
+            <div id="resultados"></div>
+        </div>
     </div>
 
     <script>
         // CONFIGURAÇÃO: COLOQUE SEU LINK DO RENDER AQUI
-        const URL_API = "https://radar-de-precos-eh36.onrender.com";
+        const API_URL = "https://radar-de-precos-eh36.onrender.com";
 
-        let dadosAtuais = [];
+        let dadosGlobal = [];
 
-        function doLogin() {
-            const u = document.getElementById('inp-user').value.toLowerCase();
-            const p = document.getElementById('inp-pass').value;
-            if (u === "rogerio" && p === "1234") {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app-screen').style.display = 'flex';
+        function login() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+            if(u === "rogerio" && p === "1234") {
+                document.getElementById('login-screen').classList.remove('active');
+                document.getElementById('app-screen').classList.add('active');
             } else {
-                document.getElementById('login-err').style.display = 'block';
+                document.getElementById('err').style.display = 'block';
             }
-        }
-
-        function doLogout() { location.reload(); }
-
-        function setStatus(msg, type) {
-            const bar = document.getElementById('status-bar');
-            bar.style.display = 'block';
-            bar.innerText = msg;
-            bar.style.color = type === 'error' ? 'var(--danger)' : 'var(--accent2)';
         }
 
         async function buscar() {
-            const termo = document.getElementById('inp-search').value;
+            const termo = document.getElementById('item').value;
+            const vMin = document.getElementById('v_min').value;
             if(!termo) return;
-            
-            setStatus("Buscando no Portal Nacional...", "info");
-            document.getElementById('results').innerHTML = "";
+
+            document.getElementById('status').innerText = ">> CONSULTANDO API NACIONAL...";
+            document.getElementById('resultados').innerHTML = "";
+            document.getElementById('action-area').style.display = "none";
+            document.getElementById('analise').innerHTML = "";
 
             try {
-                const response = await fetch(`${URL_API}?produto=${encodeURIComponent(termo)}`);
-                const data = await response.json();
+                const url = `${API_URL}?produto=${encodeURIComponent(termo)}${vMin ? '&valor_minimo='+vMin : ''}`;
+                const response = await fetch(url);
+                const res = await response.json();
                 
-                if(data.sucesso && data.mais_opcoes.length > 0) {
-                    dadosAtuais = data.mais_opcoes;
-                    setStatus(data.mais_opcoes.length + " registros encontrados", "ok");
-                    renderizar(data.sugestao_ideal, data.mais_opcoes);
+                if(res.sucesso && res.mais_opcoes.length > 0) {
+                    dadosGlobal = res.mais_opcoes;
+                    document.getElementById('status').innerText = `>> ${res.mais_opcoes.length} TRANSAÇÕES ENCONTRADAS.`;
+                    document.getElementById('action-area').style.display = "block";
+                    renderizar(res.mais_opcoes);
                 } else {
-                    setStatus("Nenhum registro encontrado.", "error");
+                    document.getElementById('status').innerText = ">> NENHUMA TRANSAÇÃO RECENTE ENCONTRADA.";
                 }
             } catch (e) {
-                setStatus("Erro ao conectar com o servidor Render.", "error");
+                document.getElementById('status').innerText = ">> ERRO: SERVIDOR RENDER OFFLINE OU URL INCORRETA.";
             }
         }
 
-        function renderizar(ideais, todos) {
-            const container = document.getElementById('results');
+        function renderizar(dados) {
+            const container = document.getElementById('resultados');
+            const analiseDiv = document.getElementById('analise');
             
-            // Cálculo de variação (Regra dos 20%)
-            let analiseHtml = "";
-            if(ideais.length >= 2) {
-                const min = ideais[0].preco;
-                const max = ideais[ideais.length-1].preco;
-                const varPct = ((max - min) / min) * 100;
-                const apto = varPct <= 20;
-                
-                analiseHtml = `
-                    <div class="analysis-card ${apto ? 'ok' : 'warn'}">
-                        <div style="font-family:var(--mono); font-size:12px; font-weight:700;">
-                            ${apto ? '✅ APTOS (VARIAÇÃO: ' : '⚠️ ALERTA (VARIAÇÃO: '}${varPct.toFixed(1)}%)
-                        </div>
-                        <div style="font-size:10px; color:var(--muted); margin-top:5px;">
-                            Limite de 20% conforme Art. 23 da Lei 14.133/2021.
-                        </div>
-                    </div>
-                `;
+            // Regra dos 20% (dos 3 menores)
+            const top3 = dados.slice(0,3);
+            if(top3.length >= 2) {
+                const variacao = ((top3[top3.length-1].preco - top3[0].preco) / top3[0].preco) * 100;
+                const apto = variacao <= 20;
+                analiseDiv.innerHTML = `
+                    <div class="analysis-badge ${apto ? 'ok' : 'warn'}">
+                        ${apto ? '✅ RESULTADO ANALÍTICO: APTO' : '⚠️ ALERTA: VARIAÇÃO ACIMA DE 20%'} // DIFERENÇA: ${variacao.toFixed(1)}%
+                    </div>`;
             }
 
-            let cardsHtml = todos.map(t => `
+            container.innerHTML = dados.map(t => `
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-orgao">${t.orgao}</div>
-                        <div class="card-valor">R$ ${t.preco.toFixed(2)}</div>
+                        <div class="orgao-name">${t.orgao}</div>
+                        <div class="price">R$ ${t.preco.toFixed(2)}</div>
                     </div>
-                    <div class="row"><span>Data:</span><span>${t.data}</span></div>
-                    <div class="row"><span>Esfera:</span><span>${t.esfera}</span></div>
-                    <div class="row"><span>Fornecedor:</span><span>${t.fornecedor}</span></div>
-                </div>
-            `).join('');
-
-            container.innerHTML = analiseHtml + `<button class="btn-export" onclick="gerarPDF()">📄 GERAR RELATÓRIO PDF/A</button>` + cardsHtml;
+                    <div class="data-grid">
+                        <div class="data-item">DATA:<b>${t.data}</b></div>
+                        <div class="data-item">ESFERA:<b>${t.esfera}</b></div>
+                        <div class="data-item">FORNECEDOR:<b>${t.fornecedor}</b></div>
+                    </div>
+                </div>`).join('');
         }
 
         function gerarPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.setFontSize(16);
-            doc.text("Relatório de Preços Governamentais", 20, 20);
-            let y = 35;
-            dadosAtuais.slice(0, 10).forEach(d => {
-                doc.setFontSize(10);
-                doc.text(`${d.data} - R$ ${d.preco.toFixed(2)} - ${d.orgao}`, 20, y);
-                y += 7;
+            doc.setFont("helvetica", "bold");
+            doc.text("RELATÓRIO TÉCNICO DE PREÇOS PÚBLICOS (PNCP)", 20, 20);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            let y = 40;
+            dadosGlobal.slice(0, 20).forEach(d => {
+                if(y > 280) { doc.addPage(); y = 20; }
+                doc.text(`R$ ${d.preco.toFixed(2)} - ${d.data} - ${d.orgao.substring(0, 70)}...`, 20, y);
+                y += 8;
             });
-            doc.save("relatorio_precos.pdf");
+            doc.save("Relatorio_Auditoria_Gov.pdf");
         }
     </script>
 </body>
