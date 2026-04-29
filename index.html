@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Radar de Preços // Auditoria</title>
-    <script src="https://cloudflare.com"></script>
-    <link href="https://googleapis.com" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #05080f; --surface: #0d1420; --accent: #00b4ff; --success: #00e5a0; --text: #dce8f5; --border: rgba(0, 180, 255, 0.15); }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14,22 +13,24 @@
         .active { display: flex; }
         #login-screen { align-items: center; justify-content: center; background: radial-gradient(circle at top, #00253a, var(--bg)); }
         .login-box { background: var(--surface); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 350px; }
-        input { width: 100%; background: #000; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; outline: none; }
-        .btn-main { width: 100%; padding: 14px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'IBM Plex Mono'; }
+        input { width: 100%; background: #000; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; outline: none; font-family: 'IBM Plex Sans', sans-serif; }
+        .btn-main { width: 100%; padding: 14px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'IBM Plex Mono', monospace; }
+        .btn-main:hover { opacity: 0.85; }
         header { padding: 15px 40px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .container { padding: 30px 40px; max-width: 1100px; margin: 0 auto; width: 100%; }
         .search-card { background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; gap: 15px; }
-        .analysis-badge { padding: 15px; border-radius: 8px; margin: 20px 0; font-family: 'IBM Plex Mono'; font-size: 0.9rem; text-align: center; border: 1px solid transparent; }
+        .search-card input { margin-bottom: 0; }
+        .analysis-badge { padding: 15px; border-radius: 8px; margin: 20px 0; font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; text-align: center; border: 1px solid transparent; }
         .ok { background: rgba(0, 229, 160, 0.05); border-color: var(--success); color: var(--success); }
         .warn { background: rgba(255, 79, 79, 0.05); border-color: #ff4f4f; color: #ff4f4f; }
         .card { background: var(--surface); border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-top: 15px; }
-        .price { color: var(--success); font-family: 'IBM Plex Mono'; font-weight: bold; font-size: 1.3rem; }
+        .price { color: var(--success); font-family: 'IBM Plex Mono', monospace; font-weight: bold; font-size: 1.3rem; }
     </style>
 </head>
 <body>
     <div id="login-screen" class="screen active">
         <div class="login-box">
-            <h2 style="color:var(--accent); text-align:center; font-family:'IBM Plex Mono'; margin-bottom:20px;">GOV.DATA</h2>
+            <h2 style="color:var(--accent); text-align:center; font-family:'IBM Plex Mono',monospace; margin-bottom:20px;">GOV.DATA</h2>
             <input type="text" id="user" placeholder="Usuário">
             <input type="password" id="pass" placeholder="Senha">
             <button class="btn-main" onclick="login()">ENTRAR</button>
@@ -37,13 +38,16 @@
     </div>
 
     <div id="app-screen" class="screen">
-        <header><div style="color:var(--accent); font-family:'IBM Plex Mono'; font-weight:bold;">AUDITORIA // PNCP</div><button onclick="location.reload()" style="background:none; border:1px solid #4a6080; color:#4a6080; padding:5px 10px; cursor:pointer; border-radius:4px;">SAIR</button></header>
+        <header>
+            <div style="color:var(--accent); font-family:'IBM Plex Mono',monospace; font-weight:bold;">AUDITORIA // PNCP</div>
+            <button onclick="location.reload()" style="background:none; border:1px solid #4a6080; color:#4a6080; padding:5px 10px; cursor:pointer; border-radius:4px;">SAIR</button>
+        </header>
         <div class="container">
             <div class="search-card">
-                <input type="text" id="item" placeholder="Digite o produto (ex: caneta)">
-                <button onclick="buscar()" style="background:var(--accent); border:none; padding:0 25px; border-radius:6px; cursor:pointer; font-weight:bold;">BUSCAR</button>
+                <input type="text" id="item" placeholder="Digite o produto (ex: caneta)" onkeydown="if(event.key==='Enter') buscar()">
+                <button onclick="buscar()" style="background:var(--accent); border:none; padding:0 25px; border-radius:6px; cursor:pointer; font-weight:bold; color:#000; font-family:'IBM Plex Mono',monospace; white-space:nowrap;">BUSCAR</button>
             </div>
-            <div id="status" style="margin-top:15px; font-size:12px; color:var(--accent); font-family:'IBM Plex Mono';"></div>
+            <div id="status" style="margin-top:15px; font-size:12px; color:var(--accent); font-family:'IBM Plex Mono',monospace;"></div>
             <div id="analise"></div>
             <div id="resultados"></div>
         </div>
@@ -53,27 +57,37 @@
         const API_URL = "https://radar-de-precos-eh36.onrender.com";
 
         function login() {
-            if(document.getElementById('user').value === "rogerio" && document.getElementById('pass').value === "1234") {
+            const user = document.getElementById('user').value;
+            const pass = document.getElementById('pass').value;
+            if (user === "rogerio" && pass === "1234") {
                 document.getElementById('login-screen').classList.remove('active');
                 document.getElementById('app-screen').classList.add('active');
+            } else {
+                alert("Usuário ou senha incorretos.");
             }
         }
 
         async function buscar() {
-            const termo = document.getElementById('item').value;
-            if(!termo) return;
+            const termo = document.getElementById('item').value.trim();
+            if (!termo) return;
+
             document.getElementById('status').innerText = ">> CONSULTANDO PNCP...";
             document.getElementById('resultados').innerHTML = "";
             document.getElementById('analise').innerHTML = "";
 
             try {
                 const response = await fetch(`${API_URL}?produto=${encodeURIComponent(termo)}`);
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
                 const res = await response.json();
-                
-                if(res.sucesso && res.mais_opcoes.length > 0) {
+
+                if (res.sucesso && res.mais_opcoes && res.mais_opcoes.length > 0) {
                     const dados = res.mais_opcoes;
                     document.getElementById('status').innerText = `>> ${dados.length} TRANSAÇÕES ENCONTRADAS.`;
-                    
+
                     // Cálculo Preço Aplicável (Regra 20%)
                     const min = dados[0].preco;
                     const max = dados[Math.min(2, dados.length - 1)].preco;
@@ -97,7 +111,7 @@
                     document.getElementById('status').innerText = ">> NENHUMA TRANSAÇÃO ENCONTRADA NO PNCP.";
                 }
             } catch (e) {
-                document.getElementById('status').innerText = ">> ERRO DE CONEXÃO COM O RENDER.";
+                document.getElementById('status').innerText = `>> ERRO DE CONEXÃO COM O SERVIDOR: ${e.message}`;
             }
         }
     </script>
