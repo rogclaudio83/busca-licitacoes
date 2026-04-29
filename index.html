@@ -15,30 +15,32 @@
         #login-screen { align-items: center; justify-content: center; background: radial-gradient(circle at top, #00253a, var(--bg)); }
         .login-box { background: var(--surface); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 350px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
         input { width: 100%; background: #000; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; outline: none; }
-        input::placeholder { color: #333; }
         .btn-main { width: 100%; padding: 14px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'IBM Plex Mono'; }
         header { padding: 15px 40px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .container { padding: 30px 40px; max-width: 1100px; margin: 0 auto; width: 100%; }
         .search-card { background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; gap: 15px; }
+        
+        /* Card de Análise Técnica */
+        .analysis-badge { padding: 20px; border-radius: 10px; margin: 20px 0; font-family: 'IBM Plex Mono'; font-size: 0.95rem; text-align: center; border: 1px solid transparent; }
+        .ok { background: rgba(0, 229, 160, 0.05); border-color: var(--success); color: var(--success); }
+        .warn { background: rgba(255, 79, 79, 0.05); border-color: #ff4f4f; color: #ff4f4f; }
+
         .card { background: var(--surface); border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-top: 15px; }
         .price { color: var(--success); font-family: 'IBM Plex Mono'; font-weight: bold; font-size: 1.3rem; }
     </style>
 </head>
 <body>
 
-    <!-- TELA DE LOGIN -->
     <div id="login-screen" class="screen active">
         <div class="login-box">
             <h2 style="color:var(--accent); text-align:center; font-family:'IBM Plex Mono'; margin-bottom:20px;">GOV.DATA</h2>
             <input type="text" id="user" placeholder="Usuário">
-            <!-- CAMPO DE SENHA OCULTO -->
             <input type="password" id="pass" placeholder="Senha">
             <button class="btn-main" onclick="login()">ENTRAR NO SISTEMA</button>
             <p id="err" style="color:red; font-size:11px; text-align:center; margin-top:10px; display:none;">Credenciais inválidas.</p>
         </div>
     </div>
 
-    <!-- TELA DO APLICATIVO -->
     <div id="app-screen" class="screen">
         <header>
             <div style="color:var(--accent); font-family:'IBM Plex Mono'; font-weight:bold;">AUDITORIA // PNCP</div>
@@ -46,22 +48,25 @@
         </header>
         <div class="container">
             <div class="search-card">
-                <input type="text" id="item" placeholder="Digite o produto (ex: Cadeira)">
+                <input type="text" id="item" placeholder="Digite o produto (ex: Caneta)">
                 <button onclick="buscar()" style="background:var(--accent); border:none; padding:0 25px; border-radius:6px; cursor:pointer; font-weight:bold;">BUSCAR</button>
             </div>
+            
             <div id="status" style="margin-top:15px; font-size:12px; color:var(--accent); font-family:'IBM Plex Mono';"></div>
+            
+            <!-- ÁREA DA REGRA DOS 20% -->
+            <div id="analise"></div>
+            
             <div id="resultados"></div>
         </div>
     </div>
 
     <script>
-        // ATENÇÃO: SUBSTITUA O LINK ABAIXO PELA SUA URL DO RENDER
-        const API_URL = "https://onrender.com";
+        // Use o seu link real do Render aqui
+        const API_URL = window.location.origin + "/buscar";
 
         function login() {
-            const u = document.getElementById('user').value;
-            const p = document.getElementById('pass').value;
-            if(u === "rogerio" && p === "1234") {
+            if(document.getElementById('user').value === "rogerio" && document.getElementById('pass').value === "1234") {
                 document.getElementById('login-screen').classList.remove('active');
                 document.getElementById('app-screen').classList.add('active');
             } else {
@@ -73,26 +78,40 @@
             const termo = document.getElementById('item').value;
             if(!termo) return;
             
-            document.getElementById('status').innerText = ">> CONECTANDO AO SERVIDOR...";
+            document.getElementById('status').innerText = ">> CONSULTANDO BASE NACIONAL...";
             document.getElementById('resultados').innerHTML = "";
+            document.getElementById('analise').innerHTML = "";
 
             try {
                 const response = await fetch(`${API_URL}?produto=${encodeURIComponent(termo)}`);
-                
-                if (!response.ok) throw new Error("Erro no servidor");
-                
                 const res = await response.json();
                 
                 if(res.sucesso && res.mais_opcoes.length > 0) {
-                    document.getElementById('status').innerText = `>> ${res.mais_opcoes.length} ITENS ENCONTRADOS NO PNCP.`;
-                    document.getElementById('resultados').innerHTML = res.mais_opcoes.map(t => `
+                    document.getElementById('status').innerText = `>> ${res.mais_opcoes.length} ITENS ENCONTRADOS.`;
+                    
+                    // Cálculo da Regra dos 20% (Baseado nos 3 menores preços encontrados)
+                    const dados = res.mais_opcoes;
+                    if(dados.length >= 2) {
+                        const min = dados[0].preco;
+                        const max = dados[Math.min(2, dados.length - 1)].preco;
+                        const variacao = ((max - min) / min) * 100;
+                        const apto = variacao <= 20;
+
+                        document.getElementById('analise').innerHTML = `
+                            <div class="analysis-badge ${apto ? 'ok' : 'warn'}">
+                                ${apto ? '✅ PREÇO APLICÁVEL: APTO' : '⚠️ ALERTA: VARIAÇÃO ELEVADA'} // DIFERENÇA: ${variacao.toFixed(1)}%
+                                <br><small style="font-size:10px; opacity:0.7;">(Análise baseada nos menores valores dos últimos 5 meses)</small>
+                            </div>`;
+                    }
+
+                    document.getElementById('resultados').innerHTML = dados.map(t => `
                         <div class="card">
                             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                                 <div style="font-weight:600; font-size:14px; max-width:70%; color:#fff;">${t.orgao}</div>
                                 <div class="price">R$ ${t.preco.toFixed(2)}</div>
                             </div>
                             <div style="font-size:11px; color:var(--muted); margin-top:10px;">
-                                DATA: ${t.data} | ESFERA: ${t.esfera}
+                                DATA: ${t.data} | ESFERA: ${t.esfera} | FORNECEDOR: ${t.fornecedor}
                             </div>
                         </div>
                     `).join('');
@@ -100,8 +119,7 @@
                     document.getElementById('status').innerText = ">> NENHUMA TRANSAÇÃO ENCONTRADA.";
                 }
             } catch (e) {
-                console.error(e);
-                document.getElementById('status').innerText = ">> ERRO: SERVIDOR OFFLINE. AGUARDE 30s E TENTE NOVAMENTE.";
+                document.getElementById('status').innerText = ">> ERRO NA CONEXÃO COM O SERVIDOR.";
             }
         }
     </script>
