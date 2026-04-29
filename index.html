@@ -7,7 +7,7 @@
     <script src="https://cloudflare.com"></script>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root { --bg: #05080f; --surface: #0d1420; --accent: #00b4ff; --success: #00e5a0; --text: #dce8f5; --border: rgba(0, 180, 255, 0.15); --muted: #4a6080; }
+        :root { --bg: #05080f; --surface: #0d1420; --accent: #00b4ff; --success: #00e5a0; --text: #dce8f5; --border: rgba(0, 180, 255, 0.15); }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; }
         .screen { display: none; min-height: 100vh; flex-direction: column; }
@@ -33,15 +33,11 @@
             <input type="text" id="user" placeholder="Usuário">
             <input type="password" id="pass" placeholder="Senha">
             <button class="btn-main" onclick="login()">ENTRAR</button>
-            <p id="err" style="color:red; font-size:11px; text-align:center; margin-top:10px; display:none;">Credenciais inválidas.</p>
         </div>
     </div>
 
     <div id="app-screen" class="screen">
-        <header>
-            <div style="color:var(--accent); font-family:'IBM Plex Mono'; font-weight:bold;">AUDITORIA // PNCP</div>
-            <button onclick="location.reload()" style="background:none; border:1px solid var(--muted); color:var(--muted); padding:5px 10px; cursor:pointer; border-radius:4px; font-size:11px;">LOGOUT</button>
-        </header>
+        <header><div style="color:var(--accent); font-family:'IBM Plex Mono'; font-weight:bold;">AUDITORIA // PNCP</div><button onclick="location.reload()" style="background:none; border:1px solid #4a6080; color:#4a6080; padding:5px 10px; cursor:pointer; border-radius:4px;">SAIR</button></header>
         <div class="container">
             <div class="search-card">
                 <input type="text" id="item" placeholder="Digite o produto (ex: caneta)">
@@ -54,14 +50,13 @@
     </div>
 
     <script>
-        // 🔗 URL CORRIGIDA PARA O SEU PROJETO REAL
         const API_URL = "https://onrender.com";
 
         function login() {
             if(document.getElementById('user').value === "rogerio" && document.getElementById('pass').value === "1234") {
                 document.getElementById('login-screen').classList.remove('active');
                 document.getElementById('app-screen').classList.add('active');
-            } else { document.getElementById('err').style.display = 'block'; }
+            }
         }
 
         async function buscar() {
@@ -76,11 +71,11 @@
                 const res = await response.json();
                 
                 if(res.sucesso && res.mais_opcoes.length > 0) {
-                    document.getElementById('status').innerText = `>> ${res.mais_opcoes.length} ITENS ENCONTRADOS.`;
-                    
-                    // Regra dos 20%
                     const dados = res.mais_opcoes;
-                    const min = dados.preco;
+                    document.getElementById('status').innerText = `>> ${dados.length} TRANSAÇÕES ENCONTRADAS.`;
+                    
+                    // Cálculo Preço Aplicável (Regra 20%)
+                    const min = dados[0].preco;
                     const max = dados[Math.min(2, dados.length - 1)].preco;
                     const variacao = ((max - min) / min) * 100;
                     const apto = variacao <= 20;
@@ -92,14 +87,18 @@
 
                     document.getElementById('resultados').innerHTML = dados.map(t => `
                         <div class="card">
-                            <div style="display:flex; justify-content:space-between;">
-                                <div style="font-weight:600; font-size:14px; max-width:70%;">${t.orgao}</div>
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <div style="font-weight:600; font-size:13px; max-width:70%;">${t.orgao}</div>
                                 <div class="price">R$ ${t.preco.toFixed(2)}</div>
                             </div>
-                            <div style="font-size:11px; color:var(--muted); margin-top:10px;">DATA: ${t.data} | ESFERA: ${t.esfera}</div>
+                            <div style="font-size:10px; color:#4a6080; margin-top:10px;">DATA: ${t.data} | ESFERA: ${t.esfera}</div>
                         </div>`).join('');
-                } else { document.getElementById('status').innerText = ">> NENHUMA TRANSAÇÃO ENCONTRADA."; }
-            } catch (e) { document.getElementById('status').innerText = ">> ERRO DE CONEXÃO. TENTE NOVAMENTE."; }
+                } else {
+                    document.getElementById('status').innerText = ">> NENHUMA TRANSAÇÃO ENCONTRADA NO PNCP.";
+                }
+            } catch (e) {
+                document.getElementById('status').innerText = ">> ERRO DE CONEXÃO COM O RENDER.";
+            }
         }
     </script>
 </body>
