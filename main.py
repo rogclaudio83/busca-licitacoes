@@ -1,18 +1,13 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
-import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-app = FastAPI(title="Busca Precisa PNCP")
+app = FastAPI()
 
-# Configuração de CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -20,111 +15,86 @@ app.add_middleware(
 HEADERS = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
 BASE_URL = "https://pncp.gov.br/api/consulta/v1"
 
-def formatar_data(data_str: str) -> str:
-    if not data_str:
-        return "N/I"
-    try:
-        # Formato esperado: 2024-05-20T...
-        p = data_str[:10].split("-")
-        return f"{p[2]}/{p[1]}/{p[0]}"
-    except:
-        return data_str[:10]
+def formatar_data(data_str):
+    if not data_str: return "N/I"
+    return data_str[:10].split('-')[::-1] if '-' in data_str else data_str[:10]
 
-def buscar_itens_no_pncp(termo: str, pagina: int) -> list:
-    """
-    Busca diretamente no endpoint de itens, garantindo que o termo 
-    esteja na descrição do produto e já trazendo o preço unitário.
-    """
+def buscar_api(termo: str, pagina: int):
+    """Função core de busca no endpoint de itens"""
     url = f"{BASE_URL}/contratacoes/itens"
+    # Note: O PNCP exige que o termo tenha pelo menos 3 caracteres
     params = {
         "pagina": pagina,
         "tamanhoPagina": 50,
-        "descricao": termo,
+        "descricao": termo, 
     }
     
     try:
-        response = requests.get(url, params=params, headers=HEADERS, timeout=15)
-        if response.status_code != 200:
+        # Aumentei o timeout porque o PNCP as vezes demora para responder buscas amplas
+        resp = requests.get(url, params=params, headers=HEADERS, timeout=20)
+        if resp.status_code != 200:
             return []
-            
-        dados = response.json()
-        itens = dados.get("data", [])
-        resultados_locais = []
         
-        for item in itens:
-            # Tenta obter o valor mais real possível (Unitário ou Estimado)
-            valor = item.get("valorUnitario") or item.get("valorEstimado") or 0
+        dados = resp.json()
+        return dados.get("data", [])
+    except Exception as e:
+        print(f"Erro na busca: {e}")
+        return []
+
+@app.get("/buscar")
+async def buscar(produto: str = Query(...)):
+    # 1. Limpeza do termo: pega as duas primeiras palavras para ser mais amplo
+    # Exemplo: "Cadeira de Escritório Preta" vira "Cadeira Escritório"
+    palavras = [p for p in produto.split() if len(p) > 2]
+    termo_amplo = " ".join(palavras[:2]) if palavras else produto
+    
+    todas_contratacoes = []
+    
+    # 2. Busca em paralelo para ganhar volume (páginas 1 a 6)
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futuros = [executor.submit(buscar_api, termo_amplo, p) for p in range(1, 7)]
+        for f in as_completed(futuros):
+            todas_contratacoes.extend(f.result())
+
+    if not todas_contratacoes:
+        return {"sucesso": True, "mensagem": "Nenhum item encontrado com esse termo", "resultados": []}
+
+    # 3. Processamento dos resultados
+    vistos = set()
+    final_results = []
+
+    for item in todas_contratacoes:
+        valor = item.get("valorUnitario") or item.get("valorEstimado") or 0
+        if valor <= 0: continue
+
+        # Identificador único para evitar duplicatas (Mesmo Órgão + Mesmo Preço + Mesma Descrição)
+        id_unico = f"{item.get('orgaoEntidade', {}).get('cnpj')}-{valor}-{item.get('descricaoItem')[:30]}"
+        
+        if id_unico not in vistos:
+            vistos.add(id_unico)
             
-            # Filtro de precisão: Ignora valores zerados ou irreais (ex: R$ 0,01)
-            if float(valor) < 0.10:
-                continue
-                
             cnpj = item.get("orgaoEntidade", {}).get("cnpj", "")
             ano = item.get("anoContratacao")
             seq = item.get("sequencialContratacao")
             
-            resultados_locais.append({
+            final_results.append({
                 "preco": round(float(valor), 2),
                 "descricao": item.get("descricaoItem", "").upper(),
                 "orgao": item.get("orgaoEntidade", {}).get("razaoSocial", "N/I"),
                 "unidade": item.get("unidadeMedida", "UN"),
                 "quantidade": item.get("quantidade", 0),
                 "data": formatar_data(item.get("dataAtualizacao") or item.get("dataInclusao")),
+                "uf": item.get("ufSigla", "N/I"),
                 "municipio": item.get("municipioNome", "N/I"),
-                "uf": item.get("ufSigla", ""),
-                "modalidade": item.get("modalidadeNome", "N/I"),
-                "link": f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{seq}" if cnpj else "#"
+                "link": f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{seq}"
             })
-        return resultados_locais
-    except Exception as e:
-        print(f"Erro na página {pagina}: {e}")
-        return []
 
-@app.get("/")
-async def index():
-    caminho = os.path.join(os.path.dirname(__file__), "index.html")
-    if os.path.exists(caminho):
-        return FileResponse(caminho)
-    return {"mensagem": "API de Busca PNCP Online. Use o endpoint /buscar?produto=nome"}
-
-@app.get("/buscar")
-async def buscar(produto: str = Query(...)):
-    termo_busca = produto.strip().lower()
-    
-    all_results = []
-    # Consultamos as 4 primeiras páginas em paralelo para ter volume e velocidade
-    # Isso cobre até 200 itens potenciais.
-    paginas = [1, 2, 3, 4]
-    
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futuros = [executor.submit(buscar_itens_no_pncp, termo_busca, p) for p in paginas]
-        for f in as_completed(futuros):
-            all_results.extend(f.result())
-
-    # 1. Deduplicação: evita o mesmo item no mesmo órgão com mesmo preço
-    vistos = set()
-    unicos = []
-    for r in all_results:
-        # Criamos uma chave única baseada em CNPJ do órgão (embutido no link), preço e descrição
-        chave = (r["link"], r["preco"], r["descricao"][:50])
-        if chave not in vistos:
-            vistos.add(chave)
-            unicos.append(r)
-
-    # 2. Ordenação: Do mais barato para o mais caro
-    unicos.sort(key=lambda x: x["preco"])
+    # 4. Ordenação por preço
+    final_results.sort(key=lambda x: x["preco"])
 
     return {
         "sucesso": True,
-        "termo_pesquisado": termo_busca,
-        "total_encontrado": len(unicos),
-        "resultados": unicos[:40] # Retorna os 40 melhores resultados
+        "termo_usado": termo_amplo,
+        "total": len(final_results),
+        "resultados": final_results[:50]
     }
-
-@app.get("/health")
-async def health():
-    return {"status": "ok", "timestamp": datetime.now().isoformat()}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
