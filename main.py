@@ -6,9 +6,11 @@ import os
 
 app = FastAPI()
 
+# 🛡️ CORREÇÃO DO CORS: Isso libera o acesso para o seu navegador
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -16,22 +18,21 @@ app.add_middleware(
 @app.get("/")
 async def principal():
     caminho = os.path.join(os.path.dirname(__file__), "index.html")
-    return FileResponse(caminho) if os.path.exists(caminho) else {"erro": "index.html nao encontrado"}
+    if os.path.exists(caminho):
+        return FileResponse(caminho)
+    return {"erro": "index.html nao encontrado"}
 
 @app.get("/buscar")
 def buscar(produto: str = Query(...)):
-    # Aumentamos a abrangência da busca removendo filtros restritivos de data inicial
-    # O PNCP retornará as publicações mais recentes primeiro por padrão
-    url = f"https://pncp.gov.br{produto}&pagina=1&tamanhoPagina=10"
+    # URL oficial do PNCP
+    url = f"https://pncp.gov.br{produto}&pagina=1"
     
     try:
         response = requests.get(url, timeout=20)
         dados = response.json()
-        
-        lista = []
-        # O PNCP retorna os dados dentro da chave 'data' ou 'resultado' dependendo do endpoint
         itens = dados.get('resultado', [])
         
+        lista = []
         for item in itens:
             lista.append({
                 "id": item.get('id'),
@@ -43,10 +44,9 @@ def buscar(produto: str = Query(...)):
                 "cnpj": "-"
             })
             
-        return {
-            "sucesso": True, 
-            "mais_opcoes": lista, 
-            "sugestao_ideal": lista[:3]
-        }
+        # Ordena por preço para a regra dos 20% funcionar
+        lista.sort(key=lambda x: x['preco'])
+            
+        return {"sucesso": True, "mais_opcoes": lista}
     except Exception as e:
         return {"sucesso": False, "erro": str(e)}
