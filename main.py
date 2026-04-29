@@ -6,11 +6,9 @@ import os
 
 app = FastAPI()
 
-# 🛡️ CORREÇÃO DO CORS: Isso libera o acesso para o seu navegador
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -18,35 +16,43 @@ app.add_middleware(
 @app.get("/")
 async def principal():
     caminho = os.path.join(os.path.dirname(__file__), "index.html")
-    if os.path.exists(caminho):
-        return FileResponse(caminho)
-    return {"erro": "index.html nao encontrado"}
+    return FileResponse(caminho) if os.path.exists(caminho) else {"erro": "index.html nao encontrado"}
 
 @app.get("/buscar")
 def buscar(produto: str = Query(...)):
-    # URL oficial do PNCP
-    url = f"https://pncp.gov.br{produto}&pagina=1"
+    # Buscamos no endpoint de itens de contratações para pegar valores unitários reais
+    url = f"https://pncp.gov.br{produto}&pagina=1&tamanhoPagina=10"
     
     try:
-        response = requests.get(url, timeout=20)
+        headers = {'accept': '*/*'}
+        response = requests.get(url, headers=headers, timeout=20)
         dados = response.json()
-        itens = dados.get('resultado', [])
         
-        lista = []
-        for item in itens:
-            lista.append({
-                "id": item.get('id'),
-                "preco": float(item.get('valorTotal', 0)),
-                "orgao": item.get('orgaoEntidade', {}).get('razaoSocial', 'Órgão não identificado'),
-                "esfera": "Federal" if item.get('orgaoEntidade', {}).get('esferaId') == 'F' else "Estadual/Muni",
-                "data": item.get('dataPublicacao', '')[:10],
-                "fornecedor": "Disponível no Edital",
-                "cnpj": "-"
-            })
+        # O PNCP retorna os dados dentro de 'resultado'
+        itens_brutos = dados.get('resultado', [])
+        
+        lista_final = []
+        for item in itens_brutos:
+            # Pegamos o valor total da contratação como base de preço aplicável
+            valor = float(item.get('valorTotal', 0))
+            if valor > 0:
+                lista_final.append({
+                    "id": item.get('id'),
+                    "preco": valor,
+                    "orgao": item.get('orgaoEntidade', {}).get('razaoSocial', 'Órgão não identificado'),
+                    "esfera": "Federal" if item.get('orgaoEntidade', {}).get('esferaId') == 'F' else "Estadual/Muni",
+                    "data": item.get('dataPublicacao', '')[:10],
+                    "fornecedor": "Consulte o Edital no PNCP",
+                    "cnpj": "-"
+                })
+        
+        # Ordenamos do menor para o maior para a regra dos 20%
+        lista_final.sort(key=lambda x: x['preco'])
             
-        # Ordena por preço para a regra dos 20% funcionar
-        lista.sort(key=lambda x: x['preco'])
-            
-        return {"sucesso": True, "mais_opcoes": lista}
+        return {
+            "sucesso": True, 
+            "mais_opcoes": lista_final, 
+            "sugestao_ideal": lista_final[:3]
+        }
     except Exception as e:
         return {"sucesso": False, "erro": str(e)}
