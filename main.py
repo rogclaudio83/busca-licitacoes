@@ -6,7 +6,6 @@ import os
 
 app = FastAPI()
 
-# Liberação de segurança para o navegador
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,35 +13,40 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ROTA RAIZ: É aqui que resolvemos o "Not Found"
 @app.get("/")
 async def principal():
-    # Busca o caminho exato onde o arquivo index.html está no servidor
     caminho = os.path.join(os.path.dirname(__file__), "index.html")
-    if os.path.exists(caminho):
-        return FileResponse(caminho)
-    return {"erro": "O arquivo index.html não foi encontrado na raiz do servidor."}
+    return FileResponse(caminho) if os.path.exists(caminho) else {"erro": "index.html nao encontrado"}
 
-# ROTA DE BUSCA: Conversa com o Governo
 @app.get("/buscar")
 def buscar(produto: str = Query(...)):
-    url = f"https://pncp.gov.br{produto}&pagina=1"
+    # Aumentamos a abrangência da busca removendo filtros restritivos de data inicial
+    # O PNCP retornará as publicações mais recentes primeiro por padrão
+    url = f"https://pncp.gov.br{produto}&pagina=1&tamanhoPagina=10"
+    
     try:
-        response = requests.get(url, timeout=15)
+        response = requests.get(url, timeout=20)
         dados = response.json()
         
-        lista_final = []
-        for item in dados.get('resultado', []):
-            lista_final.append({
+        lista = []
+        # O PNCP retorna os dados dentro da chave 'data' ou 'resultado' dependendo do endpoint
+        itens = dados.get('resultado', [])
+        
+        for item in itens:
+            lista.append({
                 "id": item.get('id'),
                 "preco": float(item.get('valorTotal', 0)),
                 "orgao": item.get('orgaoEntidade', {}).get('razaoSocial', 'Órgão não identificado'),
                 "esfera": "Federal" if item.get('orgaoEntidade', {}).get('esferaId') == 'F' else "Estadual/Muni",
                 "data": item.get('dataPublicacao', '')[:10],
-                "fornecedor": "Ver no Edital",
+                "fornecedor": "Disponível no Edital",
                 "cnpj": "-"
             })
             
-        return {"sucesso": True, "mais_opcoes": lista_final, "sugestao_ideal": lista_final[:3]}
+        return {
+            "sucesso": True, 
+            "mais_opcoes": lista, 
+            "sugestao_ideal": lista[:3]
+        }
     except Exception as e:
         return {"sucesso": False, "erro": str(e)}
