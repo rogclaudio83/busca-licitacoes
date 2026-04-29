@@ -1,281 +1,933 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radar de Preços · PNCP Auditoria</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #050a12;
-            --surface: #0b1220;
-            --accent: #00c8ff;
-            --accent2: #0066ff;
-            --success: #00f0a0;
-            --danger: #ff3d5a;
-            --text: #c8dff5;
-            --text-dim: #4a6a8a;
-            --border: rgba(0, 180, 255, 0.12);
-            --border-bright: rgba(0, 200, 255, 0.35);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar de Preços · GOV.DATA · PNCP</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #050a12;
+  --surface: #0b1220;
+  --surface2: #0e1a2e;
+  --accent: #00c8ff;
+  --accent2: #0066ff;
+  --success: #00f0a0;
+  --danger: #ff3d5a;
+  --gold: #f5a623;
+  --text: #c8dff5;
+  --text-dim: #4a6a8a;
+  --text-bright: #ffffff;
+  --border: rgba(0, 180, 255, 0.10);
+  --border-b: rgba(0, 200, 255, 0.30);
+  --mono: 'Space Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
 
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'DM Sans', sans-serif;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; overflow-x: hidden; }
 
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(0,180,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,180,255,0.03) 1px, transparent 1px);
-            background-size: 60px 60px;
-            pointer-events: none;
-            z-index: 0;
-        }
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,180,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,180,255,.025) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
 
-        body::after {
-            content: '';
-            position: fixed;
-            top: -200px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 800px;
-            height: 500px;
-            background: radial-gradient(ellipse, rgba(0,100,255,0.12) 0%, transparent 70%);
-            pointer-events: none;
-            z-index: 0;
-        }
+body::after {
+  content: '';
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 500px;
+  background: radial-gradient(ellipse, rgba(0,100,255,.10) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
 
-        .screen { display: none; position: relative; z-index: 1; }
-        .active { display: block; }
+.page { display: none; min-height: 100vh; position: relative; z-index: 1; }
+.page.active { display: flex; }
 
-        #login-screen { min-height: 100vh; display: none; align-items: center; justify-content: center; }
-        #login-screen.active { display: flex; }
+/* ── LOGIN ─────────────────────────────────────────────────── */
+#pg-login {
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+}
 
-        .login-wrap { width: 400px; animation: fadeUp 0.6s ease both; }
+.login-wrap { width: 380px; animation: fadeUp .5s ease both; }
 
-        .login-badge { text-align: center; margin-bottom: 32px; }
-        .login-badge .logo-text { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 6px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
-        .login-badge h1 { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; }
-        .login-badge .subtitle { font-size: 12px; color: var(--text-dim); margin-top: 6px; letter-spacing: 1px; }
+.login-badge { text-align: center; margin-bottom: 28px; }
+.login-badge .sup {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 5px;
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px;
+}
+.login-badge h1 {
+  font-family: var(--mono); font-size: 26px; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; letter-spacing: -1px;
+}
+.login-badge .sub { font-size: 11px; color: var(--text-dim); margin-top: 5px; letter-spacing: 1px; }
 
-        .login-box { background: var(--surface); border: 1px solid var(--border-bright); border-radius: 16px; padding: 36px; box-shadow: 0 0 60px rgba(0,100,255,0.1), 0 20px 60px rgba(0,0,0,0.5); position: relative; overflow: hidden; }
-        .login-box::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+.login-box {
+  background: var(--surface); border: 1px solid var(--border-b);
+  border-radius: 16px; padding: 32px;
+  box-shadow: 0 0 60px rgba(0,100,255,.1), 0 20px 60px rgba(0,0,0,.5);
+  position: relative; overflow: hidden;
+}
+.login-box::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
 
-        .field-group { margin-bottom: 16px; }
-        .field-label { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; display: block; }
+.fl { margin-bottom: 15px; }
+.fl label {
+  display: block; font-family: var(--mono); font-size: 9px;
+  letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 7px;
+}
+.fl input {
+  width: 100%; background: rgba(0,0,0,.4); border: 1px solid var(--border);
+  color: var(--text); padding: 12px 14px; border-radius: 8px; outline: none;
+  font-family: var(--sans); font-size: 14px; transition: border-color .2s, box-shadow .2s;
+}
+.fl input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,200,255,.08); }
+.fl input::placeholder { color: var(--text-dim); }
 
-        input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: var(--text); padding: 13px 16px; border-radius: 8px; outline: none; font-family: 'DM Sans', sans-serif; font-size: 14px; transition: border-color 0.2s, box-shadow 0.2s; }
-        input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,200,255,0.08); }
-        input::placeholder { color: var(--text-dim); }
+.btn-main {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 12px;
+  cursor: pointer; font-family: var(--mono); letter-spacing: 2px; text-transform: uppercase;
+  margin-top: 6px; transition: opacity .2s, transform .1s;
+}
+.btn-main:hover { opacity: .85; transform: translateY(-1px); }
 
-        .btn-main { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent2), var(--accent)); color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; font-family: 'Space Mono', monospace; letter-spacing: 2px; text-transform: uppercase; margin-top: 8px; transition: opacity 0.2s, transform 0.1s; }
-        .btn-main:hover { opacity: 0.85; transform: translateY(-1px); }
-        .btn-main:active { transform: translateY(0); }
+.err-msg {
+  font-size: 11px; color: var(--danger); text-align: center;
+  margin-top: 10px; font-family: var(--mono); min-height: 16px; display: none;
+}
 
-        .login-error { font-size: 11px; color: var(--danger); text-align: center; margin-top: 12px; font-family: 'Space Mono', monospace; min-height: 16px; }
+/* ── TOPBAR ────────────────────────────────────────────────── */
+.topbar {
+  background: rgba(11,18,32,.92); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border); height: 56px; padding: 0 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 200;
+}
+.logo-area { display: flex; align-items: center; gap: 10px; }
+.logo-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--success); box-shadow: 0 0 8px var(--success); animation: blink 2s infinite;
+}
+.logo-name { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
+.logo-sub { font-family: var(--mono); font-size: 8px; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; }
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+.user-tag { font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+.user-tag strong { color: var(--text); }
+.btn-exit {
+  background: none; border: 1px solid rgba(74,106,138,.4); color: var(--text-dim);
+  padding: 5px 13px; cursor: pointer; border-radius: 6px; font-size: 10px;
+  font-family: var(--mono); letter-spacing: 1px; transition: all .2s;
+}
+.btn-exit:hover { border-color: var(--danger); color: var(--danger); }
 
-        header { padding: 0 40px; height: 60px; background: rgba(11,18,32,0.85); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+/* ── STATUSBAR ─────────────────────────────────────────────── */
+.statusbar {
+  background: rgba(11,18,32,.7); border-bottom: 1px solid var(--border);
+  padding: 5px 32px; display: flex; align-items: center; gap: 22px;
+}
+.s-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9px; font-family: var(--mono); color: var(--text-dim);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.s-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: blink 2s infinite; }
 
-        .header-logo { display: flex; align-items: center; gap: 12px; }
-        .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); animation: pulse 2s ease infinite; }
-        .logo-name { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
-        .logo-tag { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; }
+/* ── APP ───────────────────────────────────────────────────── */
+#pg-app { flex-direction: column; }
+.app-body { padding: 28px 32px 60px; max-width: 1200px; margin: 0 auto; width: 100%; }
 
-        .btn-exit { background: none; border: 1px solid rgba(74,106,138,0.4); color: var(--text-dim); padding: 6px 14px; cursor: pointer; border-radius: 6px; font-size: 11px; font-family: 'Space Mono', monospace; letter-spacing: 1px; transition: all 0.2s; }
-        .btn-exit:hover { border-color: var(--danger); color: var(--danger); }
+/* ── SEARCH CARD ───────────────────────────────────────────── */
+.search-card {
+  background: var(--surface); border: 1px solid var(--border-b);
+  border-radius: 14px; padding: 20px; margin-bottom: 22px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.3); position: relative; overflow: hidden;
+}
+.search-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.panel-label {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--text-dim);
+  margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.search-row { display: grid; grid-template-columns: 2.5fr 1fr 1fr auto; gap: 12px; align-items: end; }
+.search-row .fl { margin-bottom: 0; }
 
-        .container { padding: 40px; max-width: 1000px; margin: 0 auto; width: 100%; }
+.btn-search {
+  height: 38px; padding: 0 20px;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  border: none; border-radius: 8px; cursor: pointer;
+  font-family: var(--mono); font-size: 11px; font-weight: 700; color: #fff;
+  letter-spacing: 1px; white-space: nowrap;
+  display: flex; align-items: center; gap: 7px; transition: opacity .2s, transform .1s;
+}
+.btn-search:hover { opacity: .85; transform: translateY(-1px); }
+.btn-search:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
-        .page-title { margin-bottom: 30px; }
-        .page-title h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; color: #fff; }
-        .page-title p { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+/* ── STATS BAR ─────────────────────────────────────────────── */
+.stats-bar {
+  display: none; background: var(--surface); border: 1px solid var(--border-b);
+  border-radius: 12px; margin-bottom: 20px; overflow: hidden;
+}
+.stats-bar.visible { display: grid; grid-template-columns: repeat(4,1fr); }
+.stat-cell { text-align: center; padding: 14px 10px; border-right: 1px solid var(--border); }
+.stat-cell:last-child { border-right: none; }
+.stat-label { font-size: 8px; font-family: var(--mono); letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; }
+.stat-value { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--accent); }
 
-        .search-card { background: var(--surface); border: 1px solid var(--border-bright); border-radius: 14px; padding: 20px; display: flex; gap: 12px; align-items: center; box-shadow: 0 4px 24px rgba(0,0,0,0.3); position: relative; overflow: hidden; }
-        .search-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
-        .search-card input { margin: 0; flex: 1; background: rgba(0,0,0,0.3); }
+/* ── SECTION HEADER ────────────────────────────────────────── */
+.sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; margin-top: 24px; }
+.sec-title {
+  font-size: 10px; font-family: var(--mono); font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.sec-title::before {
+  content: ''; display: block; width: 2px; height: 13px;
+  background: linear-gradient(var(--accent2), var(--accent)); border-radius: 2px;
+}
+.pill {
+  background: rgba(0,200,255,.08); color: var(--accent);
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px; letter-spacing: 1px;
+  border: 1px solid rgba(0,200,255,.2);
+}
 
-        .btn-search { background: linear-gradient(135deg, var(--accent2), var(--accent)); border: none; padding: 13px 28px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 12px; color: #fff; font-family: 'Space Mono', monospace; letter-spacing: 1px; white-space: nowrap; transition: opacity 0.2s, transform 0.1s; }
-        .btn-search:hover { opacity: 0.85; transform: translateY(-1px); }
+/* ── CARDS ─────────────────────────────────────────────────── */
+.cards-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 8px; }
+.result-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; cursor: pointer;
+  transition: border-color .2s, transform .15s, box-shadow .2s; position: relative;
+}
+.result-card:hover { border-color: var(--border-b); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,.4); }
+.result-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,200,255,.15); }
+.card-stripe { height: 3px; width: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+.result-card.selected .card-stripe { background: linear-gradient(90deg, var(--accent), var(--success)); }
+.card-body { padding: 16px 18px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.card-rank {
+  font-family: var(--mono); font-size: 8px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim);
+  background: rgba(255,255,255,.04); padding: 3px 8px; border-radius: 20px; border: 1px solid var(--border);
+}
+.card-chk {
+  width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--text-dim);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; flex-shrink: 0; font-size: 10px; color: transparent;
+}
+.result-card.selected .card-chk { border-color: var(--accent); background: var(--accent); color: #fff; }
+.card-price { font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--success); line-height: 1.1; margin-bottom: 2px; }
+.card-unit { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-bottom: 10px; }
+.card-desc { font-size: 12px; color: var(--text); margin-bottom: 12px; line-height: 1.4; }
+.card-divider { height: 1px; background: var(--border); margin: 10px 0; }
+.card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.meta-item { display: flex; flex-direction: column; gap: 2px; }
+.meta-lbl { font-size: 8px; font-family: var(--mono); letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); }
+.meta-val { font-size: 11px; font-weight: 500; color: var(--text); line-height: 1.3; }
+.card-footer {
+  padding: 8px 18px; background: rgba(0,0,0,.2); border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.src-badge { font-family: var(--mono); font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; }
+.src-pncp   { background: rgba(0,150,255,.15); color: #4ab8ff; border: 1px solid rgba(0,150,255,.25); }
+.src-dados  { background: rgba(0,240,160,.10); color: var(--success); border: 1px solid rgba(0,240,160,.2); }
+.src-painel { background: rgba(245,166,35,.10); color: var(--gold); border: 1px solid rgba(245,166,35,.2); }
+.src-default{ background: rgba(255,255,255,.05); color: var(--text-dim); border: 1px solid var(--border); }
+.esfera-pill { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; font-family: var(--mono); letter-spacing: 1px; }
+.esp-federal  { background: rgba(0,150,255,.15); color: #4ab8ff; }
+.esp-estadual { background: rgba(245,166,35,.12); color: var(--gold); }
+.esp-municipal{ background: rgba(0,240,160,.10); color: var(--success); }
+.esp-ni       { background: rgba(255,255,255,.05); color: var(--text-dim); }
 
-        #status { margin-top: 18px; font-size: 11px; color: var(--accent); font-family: 'Space Mono', monospace; letter-spacing: 1px; min-height: 16px; }
+/* ── ANALYSIS BADGE ────────────────────────────────────────── */
+.analysis-badge {
+  display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+  border-radius: 10px; margin: 16px 0; border: 1px solid transparent; font-family: var(--mono);
+}
+.analysis-badge.ok   { background: rgba(0,240,160,.05); border-color: rgba(0,240,160,.25); color: var(--success); }
+.analysis-badge.warn { background: rgba(255,61,90,.05);  border-color: rgba(255,61,90,.25);  color: var(--danger); }
+.badge-icon { font-size: 18px; }
+.badge-title { font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+.badge-detail { font-size: 9px; margin-top: 3px; opacity: .7; letter-spacing: .5px; }
 
-        .analysis-badge { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-radius: 10px; margin: 20px 0; border: 1px solid transparent; font-family: 'Space Mono', monospace; }
-        .badge-icon { font-size: 20px; }
-        .badge-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
-        .badge-detail { font-size: 10px; margin-top: 3px; opacity: 0.7; }
-        .ok { background: rgba(0,240,160,0.05); border-color: rgba(0,240,160,0.3); color: var(--success); }
-        .warn { background: rgba(255,61,90,0.05); border-color: rgba(255,61,90,0.3); color: var(--danger); }
+/* ── TABLE ─────────────────────────────────────────────────── */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  background: var(--surface2); border-bottom: 1px solid var(--border-b);
+  padding: 10px 12px; font-size: 8px; font-family: var(--mono); font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim);
+  white-space: nowrap; text-align: left;
+}
+tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(0,200,255,.03); }
+tbody tr.row-sel td { background: rgba(0,200,255,.05); }
+.td-price { font-family: var(--mono); font-weight: 700; color: var(--success); }
+.td-org { font-weight: 500; }
+td small { display: block; font-size: 9px; color: var(--text-dim); font-family: var(--mono); margin-top: 1px; }
+td input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; accent-color: var(--accent); }
 
-        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 4px; }
+/* ── STATE BOX ─────────────────────────────────────────────── */
+.state-box {
+  padding: 40px 20px; text-align: center; color: var(--text-dim);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 1px;
+}
+.state-icon { font-size: 24px; margin-bottom: 10px; opacity: .4; }
 
-        .card { background: var(--surface); border: 1px solid var(--border); padding: 20px; border-radius: 12px; transition: border-color 0.2s, transform 0.2s; animation: fadeUp 0.4s ease both; position: relative; overflow: hidden; }
-        .card::after { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: linear-gradient(180deg, var(--accent2), var(--accent)); opacity: 0; transition: opacity 0.2s; }
-        .card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
-        .card:hover::after { opacity: 1; }
+/* ── ACTION BAR ────────────────────────────────────────────── */
+.action-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border);
+}
+.sel-info { font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+.sel-info strong { color: var(--accent); }
+.btn-pdf {
+  display: flex; align-items: center; gap: 8px; padding: 10px 22px;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  color: #fff; border: none; border-radius: 8px;
+  font-family: var(--mono); font-size: 11px; font-weight: 700; cursor: pointer;
+  transition: opacity .2s, transform .1s; letter-spacing: 1px;
+}
+.btn-pdf:hover { opacity: .85; transform: translateY(-1px); }
+.btn-pdf:active { transform: scale(.99); }
+.btn-pdf:disabled { opacity: .35; cursor: not-allowed; transform: none; }
 
-        .card-org { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; margin-bottom: 8px; }
-        .card-desc { font-size: 11px; color: var(--text-dim); margin-bottom: 14px; line-height: 1.4; }
-        .card-price { color: var(--success); font-family: 'Space Mono', monospace; font-weight: 700; font-size: 22px; letter-spacing: -0.5px; }
-        .card-meta { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-        .meta-tag { font-size: 9px; font-family: 'Space Mono', monospace; letter-spacing: 1px; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.04); color: var(--text-dim); border: 1px solid var(--border); }
+/* ── SPINNER ───────────────────────────────────────────────── */
+.spin {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+  border-radius: 50%; animation: rot .65s linear infinite;
+}
 
-        .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+/* ── TOAST ─────────────────────────────────────────────────── */
+#toast {
+  position: fixed; bottom: 22px; right: 22px;
+  background: var(--surface); border: 1px solid var(--border-b); color: var(--text);
+  padding: 11px 18px; border-radius: 8px; font-size: 12px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.5);
+  opacity: 0; transform: translateY(6px); transition: opacity .22s, transform .22s;
+  pointer-events: none; z-index: 9999; font-family: var(--mono); letter-spacing: .5px;
+}
+#toast.show { opacity: 1; transform: translateY(0); }
+#toast.ok  { border-left: 3px solid var(--accent); }
+#toast.err { border-left: 3px solid var(--danger); }
 
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-        @keyframes spin { to { transform: rotate(360deg); } }
+/* ── ANIMATIONS ────────────────────────────────────────────── */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes blink  { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes rot    { to { transform: rotate(360deg); } }
 
-        @media (max-width: 600px) {
-            .container { padding: 20px; }
-            header { padding: 0 20px; }
-            .search-card { flex-direction: column; }
-            .btn-search { width: 100%; padding: 13px; }
-        }
-    </style>
+/* ── RESPONSIVE ────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .search-row { grid-template-columns: 1fr 1fr; }
+  .search-row .btn-search { grid-column: span 2; width: 100%; justify-content: center; }
+  .cards-grid { grid-template-columns: 1fr; }
+  .app-body { padding: 16px 16px 60px; }
+  .topbar { padding: 0 16px; }
+  .statusbar { display: none; }
+  .stats-bar.visible { grid-template-columns: repeat(2,1fr); }
+}
+</style>
 </head>
 <body>
 
-    <div id="login-screen" class="screen active">
-        <div class="login-wrap">
-            <div class="login-badge">
-                <div class="logo-text">Sistema de Auditoria</div>
-                <h1>GOV.DATA</h1>
-                <div class="subtitle">RADAR DE PREÇOS // PNCP</div>
-            </div>
-            <div class="login-box">
-                <div class="field-group">
-                    <label class="field-label">Usuário</label>
-                    <input type="text" id="user" placeholder="Digite seu usuário" autocomplete="username">
-                </div>
-                <div class="field-group">
-                    <label class="field-label">Senha</label>
-                    <input type="password" id="pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') login()">
-                </div>
-                <button class="btn-main" onclick="login()">ACESSAR SISTEMA</button>
-                <div class="login-error" id="login-error"></div>
-            </div>
+<!-- ══════════════════ LOGIN ══════════════════ -->
+<div id="pg-login" class="page active">
+  <div class="login-wrap">
+    <div class="login-badge">
+      <div class="sup">Sistema de Auditoria</div>
+      <h1>GOV.DATA</h1>
+      <div class="sub">RADAR DE PREÇOS // PNCP</div>
+    </div>
+    <div class="login-box">
+      <div class="fl">
+        <label>Usuário</label>
+        <input type="text" id="inp-user" placeholder="Digite seu usuário" autocomplete="username">
+      </div>
+      <div class="fl">
+        <label>Senha</label>
+        <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-main" id="btn-login">ACESSAR SISTEMA</button>
+      <div class="err-msg" id="login-err">⚠ Usuário ou senha incorretos.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ APP ══════════════════ -->
+<div id="pg-app" class="page">
+
+  <header class="topbar">
+    <div class="logo-area">
+      <div class="logo-dot"></div>
+      <div>
+        <div class="logo-name">GOV.DATA</div>
+        <div class="logo-sub">Radar de Preços</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="user-tag">Operador: <strong id="user-display"></strong></span>
+      <button class="btn-exit" id="btn-exit">SAIR</button>
+    </div>
+  </header>
+
+  <div class="statusbar">
+    <div class="s-item"><span class="s-dot"></span> API Conectada</div>
+    <div class="s-item">Fontes: PNCP · Dados.gov.br · Painel de Preços</div>
+    <div class="s-item" id="s-ts"></div>
+  </div>
+
+  <div class="app-body">
+
+    <!-- FILTROS -->
+    <div class="search-card">
+      <div class="panel-label">Filtros de Pesquisa</div>
+      <div class="search-row">
+        <div class="fl">
+          <label>Item / Produto</label>
+          <input type="text" id="f-item" placeholder="Ex.: caneta, notebook, papel A4…">
         </div>
+        <div class="fl">
+          <label>Valor Mínimo (R$)</label>
+          <input type="number" id="f-min" placeholder="Sem limite" step="0.01" min="0">
+        </div>
+        <div class="fl">
+          <label>Valor Máximo (R$)</label>
+          <input type="number" id="f-max" placeholder="Sem limite" step="0.01" min="0">
+        </div>
+        <button class="btn-search" id="btn-search">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          BUSCAR
+        </button>
+      </div>
+      <div id="status" style="margin-top:14px;font-size:10px;color:var(--accent);font-family:var(--mono);letter-spacing:1px;min-height:14px"></div>
     </div>
 
-    <div id="app-screen" class="screen">
-        <header>
-            <div class="header-logo">
-                <div class="logo-dot"></div>
-                <div>
-                    <div class="logo-name">GOV.DATA</div>
-                    <div class="logo-tag">Radar de Preços</div>
-                </div>
-            </div>
-            <button class="btn-exit" onclick="location.reload()">SAIR</button>
-        </header>
-
-        <div class="container">
-            <div class="page-title">
-                <h2>Consulta de Preços</h2>
-                <p>Pesquise transações registradas no Portal Nacional de Contratações Públicas</p>
-            </div>
-
-            <div class="search-card">
-                <input type="text" id="item" placeholder="Digite o produto (ex: caneta, notebook, papel A4…)" onkeydown="if(event.key==='Enter') buscar()">
-                <button class="btn-search" onclick="buscar()">BUSCAR</button>
-            </div>
-
-            <div id="status"></div>
-            <div id="analise"></div>
-            <div id="resultados"></div>
-        </div>
+    <!-- STATS -->
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat-cell"><div class="stat-label">Mínimo</div><div class="stat-value" id="st-min">—</div></div>
+      <div class="stat-cell"><div class="stat-label">Máximo</div><div class="stat-value" id="st-max">—</div></div>
+      <div class="stat-cell"><div class="stat-label">Média</div><div class="stat-value" id="st-avg">—</div></div>
+      <div class="stat-cell"><div class="stat-label">Mediana</div><div class="stat-value" id="st-med">—</div></div>
     </div>
 
-    <script>
-        // ✅ URL correta apontando para a rota /buscar
-        const API_URL = "https://radar-de-precos-eh36.onrender.com";
+    <!-- ANÁLISE -->
+    <div id="analise"></div>
 
-        function login() {
-            const user = document.getElementById('user').value.trim();
-            const pass = document.getElementById('pass').value;
-            const err  = document.getElementById('login-error');
+    <!-- CARDS -->
+    <div class="sec-hdr">
+      <span class="sec-title">Sugestão Ideal</span>
+      <span class="pill">Variação máx. 20% · Mediana</span>
+    </div>
+    <div class="cards-grid" id="cards-grid">
+      <div class="state-box" style="grid-column:1/-1">
+        <div class="state-icon">🔍</div>
+        Realize uma pesquisa para visualizar as sugestões ideais.
+      </div>
+    </div>
 
-            if (user === "rogerio" && pass === "1234") {
-                document.getElementById('login-screen').classList.remove('active');
-                document.getElementById('app-screen').classList.add('active');
-                err.textContent = '';
-            } else {
-                err.textContent = '⚠ Usuário ou senha incorretos.';
-                document.getElementById('pass').value = '';
-            }
-        }
+    <!-- TABELA -->
+    <div class="sec-hdr">
+      <span class="sec-title">Histórico de Transações</span>
+      <span class="pill" id="badge-total" style="display:none"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:38px">Sel.</th>
+            <th>Valor Unit.</th>
+            <th>Descrição</th>
+            <th>Órgão</th>
+            <th>Esfera</th>
+            <th>Data</th>
+            <th>UF</th>
+            <th>Modalidade</th>
+            <th>Fonte</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-body">
+          <tr>
+            <td colspan="9">
+              <div class="state-box">
+                <div class="state-icon">📋</div>
+                O histórico aparecerá aqui após a pesquisa.
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-        async function buscar() {
-            const termo = document.getElementById('item').value.trim();
-            if (!termo) return;
+    <!-- ACTION BAR -->
+    <div class="action-bar">
+      <span class="sel-info"><strong id="sel-count">0</strong> item(s) selecionado(s) para o relatório</span>
+      <button class="btn-pdf" id="btn-pdf" disabled>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        GERAR RELATÓRIO PDF
+      </button>
+    </div>
 
-            const statusEl     = document.getElementById('status');
-            const analiseEl    = document.getElementById('analise');
-            const resultadosEl = document.getElementById('resultados');
+  </div>
+</div>
 
-            statusEl.innerHTML     = '<span class="spinner"></span> CONSULTANDO PNCP...';
-            analiseEl.innerHTML    = '';
-            resultadosEl.innerHTML = '';
+<div id="toast"></div>
 
-            try {
-                // ✅ Rota correta: /buscar
-                const response = await fetch(`${API_URL}/buscar?produto=${encodeURIComponent(termo)}`);
+<script>
+  // ── Configuração ──────────────────────────────────────────
+  // Troque pela URL do seu backend no Render (ou outro host)
+  const API_URL = "https://radar-de-precos-eh36.onrender.com";
 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  // Credenciais locais — adicione ou altere conforme necessário
+  const USERS = {
+    "rogerio":  "1234",
+    "admin":    "gov2024",
+    "auditor":  "audit@123"
+  };
 
-                const res = await response.json();
+  // ── Estado ────────────────────────────────────────────────
+  let currentUser = null;
+  let allResults  = [];
+  let statsData   = {};
+  let selRows     = new Set();
+  let selCards    = new Set();
 
-                if (res.sucesso && res.mais_opcoes && res.mais_opcoes.length > 0) {
-                    const dados = res.mais_opcoes;
-                    statusEl.textContent = `>> ${dados.length} transação(ões) encontrada(s) no PNCP.`;
+  // ── Helpers ───────────────────────────────────────────────
+  const brl = v => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-                    // Regra dos 20%
-                    const min      = dados[0].preco;
-                    const max      = dados[Math.min(2, dados.length - 1)].preco;
-                    const variacao = ((max - min) / min) * 100;
-                    const apto     = variacao <= 20;
+  const brlShort = v => {
+    const n = Number(v);
+    if (n >= 1e6) return `R$ ${(n / 1e6).toFixed(2).replace(".", ",")}M`;
+    if (n >= 1e3) return `R$ ${(n / 1e3).toFixed(2).replace(".", ",")}k`;
+    return brl(n);
+  };
 
-                    analiseEl.innerHTML = `
-                        <div class="analysis-badge ${apto ? 'ok' : 'warn'}">
-                            <div class="badge-icon">${apto ? '✅' : '⚠️'}</div>
-                            <div class="badge-content">
-                                <div class="badge-title">${apto ? 'PREÇO APLICÁVEL — APTO' : 'ALERTA: VARIAÇÃO ELEVADA'}</div>
-                                <div class="badge-detail">Diferença entre os 3 menores preços: ${variacao.toFixed(1)}% ${apto ? '(dentro do limite de 20%)' : '(acima do limite de 20%)'}</div>
-                            </div>
-                        </div>`;
+  function srcClass(f) {
+    if (!f) return "src-default";
+    const s = f.toLowerCase();
+    if (s.includes("painel")) return "src-painel";
+    if (s.includes("dados"))  return "src-dados";
+    if (s.includes("pncp"))   return "src-pncp";
+    return "src-default";
+  }
 
-                    resultadosEl.innerHTML = `<div class="results-grid">${
-                        dados.map((t, i) => `
-                            <div class="card" style="animation-delay:${i * 0.06}s">
-                                <div class="card-org">${t.orgao}</div>
-                                ${t.descricao ? `<div class="card-desc">${t.descricao}</div>` : ''}
-                                <div class="card-price">R$ ${t.preco.toFixed(2)}</div>
-                                <div class="card-meta">
-                                    <span class="meta-tag">${t.data}</span>
-                                    <span class="meta-tag">${t.esfera}</span>
-                                    ${t.uf ? `<span class="meta-tag">${t.uf}${t.municipio ? ' · ' + t.municipio : ''}</span>` : ''}
-                                    ${t.unidade ? `<span class="meta-tag">${t.unidade}</span>` : ''}
-                                </div>
-                            </div>`).join('')
-                    }</div>`;
+  function espClass(e) {
+    const s = (e || "").toLowerCase();
+    if (s.includes("federal"))   return "esp-federal";
+    if (s.includes("estadual"))  return "esp-estadual";
+    if (s.includes("municipal")) return "esp-municipal";
+    return "esp-ni";
+  }
 
-                } else {
-                    statusEl.textContent = '>> Nenhuma transação encontrada no PNCP para este produto.';
-                }
+  function toast(msg, type = "ok") {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = `show ${type}`;
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.className = "", 3400);
+  }
 
-            } catch (e) {
-                statusEl.innerHTML = `<span style="color:var(--danger)">⚠ Erro de conexão com o servidor: ${e.message}</span>`;
-            }
-        }
-    </script>
+  function updSel() {
+    const n = selRows.size + selCards.size;
+    document.getElementById("sel-count").textContent = n;
+    document.getElementById("btn-pdf").disabled = n === 0;
+  }
+
+  // ── Eventos ───────────────────────────────────────────────
+  document.getElementById("btn-login").addEventListener("click", doLogin);
+  document.getElementById("inp-pass").addEventListener("keydown", e => e.key === "Enter" && doLogin());
+  document.getElementById("f-item").addEventListener("keydown",  e => e.key === "Enter" && doSearch());
+  document.getElementById("btn-search").addEventListener("click", doSearch);
+  document.getElementById("btn-exit").addEventListener("click",   doLogout);
+  document.getElementById("btn-pdf").addEventListener("click",    gerarPDF);
+
+  // ── Login / Logout ────────────────────────────────────────
+  function doLogin() {
+    const u   = document.getElementById("inp-user").value.trim();
+    const p   = document.getElementById("inp-pass").value;
+    const err = document.getElementById("login-err");
+
+    if (USERS[u] && USERS[u] === p) {
+      currentUser = u;
+      err.style.display = "none";
+      document.getElementById("user-display").textContent =
+        u.charAt(0).toUpperCase() + u.slice(1);
+      document.getElementById("s-ts").textContent =
+        "Sessão: " + new Date().toLocaleString("pt-BR");
+      document.getElementById("pg-login").classList.remove("active");
+      document.getElementById("pg-app").classList.add("active");
+    } else {
+      err.style.display = "block";
+      document.getElementById("inp-pass").value = "";
+    }
+  }
+
+  function doLogout() {
+    currentUser = null; allResults = []; statsData = {};
+    selRows.clear(); selCards.clear();
+    document.getElementById("pg-app").classList.remove("active");
+    document.getElementById("pg-login").classList.add("active");
+    document.getElementById("inp-user").value = "";
+    document.getElementById("inp-pass").value = "";
+    resetUI();
+  }
+
+  function resetUI() {
+    document.getElementById("cards-grid").innerHTML =
+      '<div class="state-box" style="grid-column:1/-1"><div class="state-icon">🔍</div>Realize uma pesquisa para visualizar as sugestões ideais.</div>';
+    document.getElementById("tbl-body").innerHTML =
+      '<tr><td colspan="9"><div class="state-box"><div class="state-icon">📋</div>O histórico aparecerá aqui após a pesquisa.</div></td></tr>';
+    document.getElementById("stats-bar").classList.remove("visible");
+    document.getElementById("badge-total").style.display = "none";
+    document.getElementById("analise").innerHTML = "";
+    document.getElementById("status").textContent = "";
+    updSel();
+  }
+
+  // ── Busca ─────────────────────────────────────────────────
+  async function doSearch() {
+    const item = document.getElementById("f-item").value.trim();
+    const minP = document.getElementById("f-min").value;
+    const maxP = document.getElementById("f-max").value;
+    if (!item) { toast("Informe o nome do item.", "err"); return; }
+
+    selRows.clear(); selCards.clear(); updSel();
+
+    const btn      = document.getElementById("btn-search");
+    const statusEl = document.getElementById("status");
+    btn.disabled   = true;
+    btn.innerHTML  = '<span class="spin"></span> BUSCANDO...';
+    statusEl.innerHTML = '<span class="spin"></span> CONSULTANDO PNCP...';
+    document.getElementById("analise").innerHTML = "";
+
+    try {
+      const params = new URLSearchParams({ produto: item });
+      if (minP) params.append("min_preco", minP);
+      if (maxP) params.append("max_preco", maxP);
+
+      const res  = await fetch(`${API_URL}/buscar?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      allResults = data.resultados || data.mais_opcoes || [];
+      statsData  = data.stats || {};
+
+      if (allResults.length > 0) {
+        renderStats();
+        renderAnalise();
+        renderCards();
+        renderTable();
+        const total = data.total || allResults.length;
+        statusEl.textContent = `>> ${total} transação(ões) encontrada(s) no PNCP.`;
+        document.getElementById("badge-total").textContent = `${total} registro(s)`;
+        document.getElementById("badge-total").style.display = "";
+        toast(`${total} transação(ões) encontrada(s).`);
+      } else {
+        statusEl.textContent = ">> Nenhuma transação encontrada para este produto.";
+        renderCards([]);
+        renderTable([]);
+      }
+
+    } catch (e) {
+      statusEl.innerHTML = `<span style="color:var(--danger)">⚠ Erro de conexão: ${e.message}</span>`;
+      toast(`Falha na conexão: ${e.message}`, "err");
+    } finally {
+      btn.disabled  = false;
+      btn.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg> BUSCAR`;
+    }
+  }
+
+  // ── Stats ─────────────────────────────────────────────────
+  function renderStats() {
+    const bar    = document.getElementById("stats-bar");
+    const precos = allResults.map(r => r.preco).sort((a, b) => a - b);
+    const n      = precos.length;
+    if (!n) { bar.classList.remove("visible"); return; }
+
+    const min = precos[0];
+    const max = precos[n - 1];
+    const avg = precos.reduce((s, v) => s + v, 0) / n;
+    const med = n % 2 === 0
+      ? (precos[n / 2 - 1] + precos[n / 2]) / 2
+      : precos[Math.floor(n / 2)];
+
+    document.getElementById("st-min").textContent = brlShort(min);
+    document.getElementById("st-max").textContent = brlShort(max);
+    document.getElementById("st-avg").textContent = brlShort(avg);
+    document.getElementById("st-med").textContent = brlShort(med);
+    bar.classList.add("visible");
+
+    // Enriquece statsData com valores calculados localmente
+    statsData = { ...statsData, minimo: min, maximo: max, media: avg, mediana: med };
+  }
+
+  // ── Análise 20% ───────────────────────────────────────────
+  function renderAnalise() {
+    const sorted = [...allResults].sort((a, b) => a.preco - b.preco);
+    if (sorted.length < 2) { document.getElementById("analise").innerHTML = ""; return; }
+    const min      = sorted[0].preco;
+    const max      = sorted[Math.min(2, sorted.length - 1)].preco;
+    const variacao = ((max - min) / min) * 100;
+    const apto     = variacao <= 20;
+    document.getElementById("analise").innerHTML = `
+      <div class="analysis-badge ${apto ? "ok" : "warn"}">
+        <div class="badge-icon">${apto ? "✅" : "⚠️"}</div>
+        <div>
+          <div class="badge-title">${apto ? "PREÇO APLICÁVEL — APTO" : "ALERTA: VARIAÇÃO ELEVADA"}</div>
+          <div class="badge-detail">Diferença entre os 3 menores preços: ${variacao.toFixed(1)}%
+            ${apto ? "(dentro do limite de 20%)" : "(acima do limite de 20%)"}</div>
+        </div>
+      </div>`;
+  }
+
+  // ── Sugeridos ─────────────────────────────────────────────
+  function getSugeridos() {
+    if (!allResults.length) return [];
+    const sorted  = [...allResults].sort((a, b) => a.preco - b.preco);
+    const mediana = sorted[Math.floor(sorted.length / 2)].preco;
+    return sorted
+      .filter(r => Math.abs(r.preco - mediana) / mediana <= 0.20)
+      .slice(0, 3);
+  }
+
+  // ── Cards ─────────────────────────────────────────────────
+  function renderCards() {
+    const grid = document.getElementById("cards-grid");
+    const sug  = getSugeridos();
+    if (!sug.length) {
+      grid.innerHTML = '<div class="state-box" style="grid-column:1/-1"><div class="state-icon">ℹ️</div>Não foi possível calcular sugestões com variação de 20%.</div>';
+      return;
+    }
+    const labels = ["1ª Melhor Opção", "2ª Melhor Opção", "3ª Melhor Opção"];
+    grid.innerHTML = sug.map((r, i) => `
+      <div class="result-card" id="c${i}" onclick="toggleCard(${i})">
+        <div class="card-stripe"></div>
+        <div class="card-body">
+          <div class="card-head">
+            <span class="card-rank">${labels[i]}</span>
+            <div class="card-chk" id="chk-c${i}">✓</div>
+          </div>
+          <div class="card-price">${brl(r.preco)}</div>
+          <div class="card-unit">${r.unidade || "UN"} · Qtd: ${Number(r.quantidade || 1).toLocaleString("pt-BR")}</div>
+          <div class="card-desc">${r.descricao || "—"}</div>
+          <div class="card-divider"></div>
+          <div class="card-meta">
+            <div class="meta-item">
+              <span class="meta-lbl">Órgão</span>
+              <span class="meta-val">${r.orgao || "—"}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl">Data</span>
+              <span class="meta-val">${r.data || "—"}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl">Município / UF</span>
+              <span class="meta-val">${r.municipio ? r.municipio + " / " + (r.uf || "") : (r.uf || "—")}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl">Modalidade</span>
+              <span class="meta-val">${r.modalidade || "—"}</span>
+            </div>
+            <div class="meta-item" style="grid-column:span 2">
+              <span class="meta-lbl">Nº Processo</span>
+              <span class="meta-val" style="color:var(--accent)">${r.numero_processo || "—"}</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="src-badge ${srcClass(r.fonte)}">${r.fonte || "N/I"}</span>
+          <span class="esfera-pill ${espClass(r.esfera)}">${r.esfera || "—"}</span>
+        </div>
+      </div>`).join("");
+  }
+
+  function toggleCard(i) {
+    const el = document.getElementById(`c${i}`);
+    if (!el) return;
+    if (selCards.has(i)) { selCards.delete(i); el.classList.remove("selected"); }
+    else                 { selCards.add(i);    el.classList.add("selected"); }
+    updSel();
+  }
+
+  // ── Tabela ────────────────────────────────────────────────
+  function renderTable() {
+    const tb = document.getElementById("tbl-body");
+    if (!allResults.length) {
+      tb.innerHTML = '<tr><td colspan="9"><div class="state-box"><div class="state-icon">😕</div>Nenhuma transação encontrada.</div></td></tr>';
+      return;
+    }
+    tb.innerHTML = allResults.map((r, i) => `
+      <tr id="row${i}">
+        <td><input type="checkbox" onchange="toggleRow(${i})"></td>
+        <td class="td-price">${brl(r.preco)}</td>
+        <td>${(r.descricao || "—").slice(0, 55)}${r.descricao && r.descricao.length > 55 ? "…" : ""}</td>
+        <td class="td-org">${r.orgao || "—"}
+          <small>${r.municipio ? r.municipio + " · " + (r.uf || "") : (r.uf || "")}</small>
+        </td>
+        <td><span class="esfera-pill ${espClass(r.esfera)}">${r.esfera || "—"}</span></td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">${r.data || "—"}</td>
+        <td style="font-family:var(--mono);font-size:11px">${r.uf || "—"}</td>
+        <td style="font-size:11px">${r.modalidade || "—"}</td>
+        <td><span class="src-badge ${srcClass(r.fonte)}">${r.fonte || "—"}</span></td>
+      </tr>`).join("");
+  }
+
+  function toggleRow(i) {
+    const row = document.getElementById(`row${i}`);
+    if (selRows.has(i)) { selRows.delete(i); row.classList.remove("row-sel"); }
+    else                { selRows.add(i);    row.classList.add("row-sel"); }
+    updSel();
+  }
+
+  // ── Geração de PDF ────────────────────────────────────────
+  function gerarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc  = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const now  = new Date();
+    const item = document.getElementById("f-item").value || "—";
+
+    const sug        = getSugeridos();
+    const dadosCards = [...selCards].map(i => sug[i]).filter(Boolean);
+    const dadosTbl   = [...selRows].map(i => allResults[i]).filter(Boolean);
+    const todos      = [...dadosCards, ...dadosTbl];
+
+    if (!todos.length) { toast("Selecione ao menos um item.", "err"); return; }
+
+    // Cabeçalho
+    doc.setFillColor(5, 10, 18);
+    doc.rect(0, 0, 297, 28, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(0, 200, 255);
+    doc.text("GOV.DATA", 14, 14);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(74, 106, 138);
+    doc.text("RADAR DE PREÇOS — RELATÓRIO DE AUDITORIA PNCP", 14, 21);
+    doc.setTextColor(150, 180, 200);
+    doc.text(`Gerado em: ${now.toLocaleString("pt-BR")}`, 297 - 14, 12, { align: "right" });
+    doc.text(`Operador: ${currentUser || "—"}`,           297 - 14, 18, { align: "right" });
+    doc.text(`Item: ${item}`,                             297 - 14, 24, { align: "right" });
+
+    // Painel de estatísticas
+    if (statsData && statsData.media) {
+      const sy = 34;
+      doc.setFillColor(11, 18, 32);
+      doc.rect(14, sy, 269, 18, "F");
+      const stats = [
+        { label: "MÍNIMO",        val: brl(statsData.minimo)  },
+        { label: "MÁXIMO",        val: brl(statsData.maximo)  },
+        { label: "MÉDIA",         val: brl(statsData.media)   },
+        { label: "MEDIANA",       val: brl(statsData.mediana) },
+        { label: "SELECIONADOS",  val: String(todos.length)   },
+      ];
+      const colW = 269 / stats.length;
+      stats.forEach((s, i) => {
+        const cx = 14 + i * colW + colW / 2;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(0, 200, 255);
+        doc.text(s.label, cx, sy + 7, { align: "center" });
+        doc.setFontSize(9);
+        doc.setTextColor(200, 223, 245);
+        doc.text(s.val, cx, sy + 14, { align: "center" });
+      });
+    }
+
+    // Tabela principal
+    doc.autoTable({
+      startY: statsData && statsData.media ? 58 : 34,
+      head: [["Valor Unit.", "Descrição", "Órgão", "Esfera", "Data", "UF", "Modalidade", "Fonte", "Nº Processo"]],
+      body: todos.map(r => [
+        brl(r.preco),
+        (r.descricao || "—").slice(0, 55),
+        r.orgao       || "—",
+        r.esfera      || "—",
+        r.data        || "—",
+        r.uf          || "—",
+        r.modalidade  || "—",
+        r.fonte       || "—",
+        r.numero_processo || "—",
+      ]),
+      styles: {
+        fontSize: 8, cellPadding: 3.5,
+        font: "helvetica", textColor: [26, 40, 64], valign: "middle",
+      },
+      headStyles: {
+        fillColor: [11, 18, 32], textColor: [0, 200, 255],
+        fontStyle: "bold", fontSize: 7.5, halign: "center",
+      },
+      alternateRowStyles: { fillColor: [240, 245, 252] },
+      columnStyles: {
+        0: { fontStyle: "bold", halign: "right", cellWidth: 26 },
+        1: { cellWidth: 60 },
+      },
+      margin: { left: 14, right: 14 },
+      didDrawPage: () => {
+        const pg  = doc.internal.getCurrentPageInfo().pageNumber;
+        const tot = doc.internal.getNumberOfPages();
+        doc.setFontSize(7.5); doc.setTextColor(150);
+        doc.text(`GOV.DATA · Relatório de Auditoria · Página ${pg} de ${tot}`, 14, 207);
+        doc.text(
+          `Gerado em ${now.toLocaleString("pt-BR")} · Operador: ${currentUser}`,
+          297 - 14, 207, { align: "right" }
+        );
+      }
+    });
+
+    // Rodapé legal
+    const finalY = doc.lastAutoTable.finalY + 7;
+    if (finalY < 195) {
+      doc.setFillColor(240, 245, 252);
+      doc.rect(14, finalY, 269, 14, "F");
+      doc.setFontSize(7); doc.setTextColor(100, 116, 139);
+      doc.text(
+        "Este relatório foi gerado pelo sistema GOV.DATA com base em dados do Portal Nacional de Compras Públicas (PNCP).\n" +
+        "Válido para instrução de processos administrativos conforme Lei 14.133/2021.",
+        20, finalY + 5, { maxWidth: 257, lineHeightFactor: 1.5 }
+      );
+    }
+
+    const fname = `GovData_${item.replace(/\s+/g, "_")}_${now.toISOString().slice(0, 10)}.pdf`;
+    doc.save(fname);
+    toast(`Relatório "${fname}" gerado com sucesso.`);
+  }
+</script>
 </body>
 </html>
