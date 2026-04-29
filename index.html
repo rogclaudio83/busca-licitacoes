@@ -3,51 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radar de Preços // Auditoria</title>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <title>Radar de Preços · PNCP Auditoria</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #05080f; --surface: #0d1420; --accent: #00b4ff; --success: #00e5a0; --text: #dce8f5; --border: rgba(0, 180, 255, 0.15); }
+        :root {
+            --bg: #050a12;
+            --surface: #0b1220;
+            --surface2: #111b2e;
+            --accent: #00c8ff;
+            --accent2: #0066ff;
+            --success: #00f0a0;
+            --danger: #ff3d5a;
+            --text: #c8dff5;
+            --text-dim: #4a6a8a;
+            --border: rgba(0, 180, 255, 0.12);
+            --border-bright: rgba(0, 200, 255, 0.35);
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; }
-        .screen { display: none; min-height: 100vh; flex-direction: column; }
-        .active { display: flex; }
-        #login-screen { align-items: center; justify-content: center; background: radial-gradient(circle at top, #00253a, var(--bg)); }
-        .login-box { background: var(--surface); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 350px; }
-        input { width: 100%; background: #000; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; outline: none; font-family: 'IBM Plex Sans', sans-serif; }
-        .btn-main { width: 100%; padding: 14px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'IBM Plex Mono', monospace; }
-        .btn-main:hover { opacity: 0.85; }
-        header { padding: 15px 40px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .container { padding: 30px 40px; max-width: 1100px; margin: 0 auto; width: 100%; }
-        .search-card { background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; gap: 15px; }
-        .search-card input { margin-bottom: 0; }
-        .analysis-badge { padding: 15px; border-radius: 8px; margin: 20px 0; font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; text-align: center; border: 1px solid transparent; }
-        .ok { background: rgba(0, 229, 160, 0.05); border-color: var(--success); color: var(--success); }
-        .warn { background: rgba(255, 79, 79, 0.05); border-color: #ff4f4f; color: #ff4f4f; }
-        .card { background: var(--surface); border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-top: 15px; }
-        .price { color: var(--success); font-family: 'IBM Plex Mono', monospace; font-weight: bold; font-size: 1.3rem; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,180,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,180,255,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 500px;
+            background: radial-gradient(ellipse, rgba(0,100,255,0.12) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .screen { display: none; position: relative; z-index: 1; }
+        .active { display: block; }
+
+        /* LOGIN */
+        #login-screen { min-height: 100vh; display: none; align-items: center; justify-content: center; }
+        #login-screen.active { display: flex; }
+
+        .login-wrap { width: 400px; animation: fadeUp 0.6s ease both; }
+
+        .login-badge { text-align: center; margin-bottom: 32px; }
+        .login-badge .logo-text { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 6px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+        .login-badge h1 { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; }
+        .login-badge .subtitle { font-size: 12px; color: var(--text-dim); margin-top: 6px; letter-spacing: 1px; }
+
+        .login-box { background: var(--surface); border: 1px solid var(--border-bright); border-radius: 16px; padding: 36px; box-shadow: 0 0 60px rgba(0,100,255,0.1), 0 20px 60px rgba(0,0,0,0.5); position: relative; overflow: hidden; }
+        .login-box::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+
+        .field-group { margin-bottom: 16px; }
+        .field-label { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; display: block; }
+
+        input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: var(--text); padding: 13px 16px; border-radius: 8px; outline: none; font-family: 'DM Sans', sans-serif; font-size: 14px; transition: border-color 0.2s, box-shadow 0.2s; }
+        input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,200,255,0.08); }
+        input::placeholder { color: var(--text-dim); }
+
+        .btn-main { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent2), var(--accent)); color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; font-family: 'Space Mono', monospace; letter-spacing: 2px; text-transform: uppercase; margin-top: 8px; transition: opacity 0.2s, transform 0.1s; }
+        .btn-main:hover { opacity: 0.85; transform: translateY(-1px); }
+        .btn-main:active { transform: translateY(0); }
+
+        .login-error { font-size: 11px; color: var(--danger); text-align: center; margin-top: 12px; font-family: 'Space Mono', monospace; min-height: 16px; }
+
+        /* HEADER */
+        header { padding: 0 40px; height: 60px; background: rgba(11,18,32,0.85); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+
+        .header-logo { display: flex; align-items: center; gap: 12px; }
+        .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); animation: pulse 2s ease infinite; }
+        .logo-name { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
+        .logo-tag { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; }
+
+        .btn-exit { background: none; border: 1px solid rgba(74,106,138,0.4); color: var(--text-dim); padding: 6px 14px; cursor: pointer; border-radius: 6px; font-size: 11px; font-family: 'Space Mono', monospace; letter-spacing: 1px; transition: all 0.2s; }
+        .btn-exit:hover { border-color: var(--danger); color: var(--danger); }
+
+        /* MAIN */
+        .container { padding: 40px; max-width: 1000px; margin: 0 auto; width: 100%; }
+
+        .page-title { margin-bottom: 30px; }
+        .page-title h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; color: #fff; }
+        .page-title p { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+
+        .search-card { background: var(--surface); border: 1px solid var(--border-bright); border-radius: 14px; padding: 20px; display: flex; gap: 12px; align-items: center; box-shadow: 0 4px 24px rgba(0,0,0,0.3); position: relative; overflow: hidden; }
+        .search-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+        .search-card input { margin: 0; flex: 1; background: rgba(0,0,0,0.3); }
+
+        .btn-search { background: linear-gradient(135deg, var(--accent2), var(--accent)); border: none; padding: 13px 28px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 12px; color: #fff; font-family: 'Space Mono', monospace; letter-spacing: 1px; white-space: nowrap; transition: opacity 0.2s, transform 0.1s; }
+        .btn-search:hover { opacity: 0.85; transform: translateY(-1px); }
+
+        #status { margin-top: 18px; font-size: 11px; color: var(--accent); font-family: 'Space Mono', monospace; letter-spacing: 1px; min-height: 16px; }
+
+        .analysis-badge { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-radius: 10px; margin: 20px 0; border: 1px solid transparent; font-family: 'Space Mono', monospace; }
+        .badge-icon { font-size: 20px; }
+        .badge-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+        .badge-detail { font-size: 10px; margin-top: 3px; opacity: 0.7; }
+        .ok { background: rgba(0,240,160,0.05); border-color: rgba(0,240,160,0.3); color: var(--success); }
+        .warn { background: rgba(255,61,90,0.05); border-color: rgba(255,61,90,0.3); color: var(--danger); }
+
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 4px; }
+
+        .card { background: var(--surface); border: 1px solid var(--border); padding: 20px; border-radius: 12px; transition: border-color 0.2s, transform 0.2s; animation: fadeUp 0.4s ease both; position: relative; overflow: hidden; }
+        .card::after { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: linear-gradient(180deg, var(--accent2), var(--accent)); opacity: 0; transition: opacity 0.2s; }
+        .card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+        .card:hover::after { opacity: 1; }
+
+        .card-org { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; margin-bottom: 14px; }
+        .card-price { color: var(--success); font-family: 'Space Mono', monospace; font-weight: 700; font-size: 22px; letter-spacing: -0.5px; }
+        .card-meta { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .meta-tag { font-size: 9px; font-family: 'Space Mono', monospace; letter-spacing: 1px; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.04); color: var(--text-dim); border: 1px solid var(--border); }
+
+        .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 600px) {
+            .container { padding: 20px; }
+            header { padding: 0 20px; }
+            .search-card { flex-direction: column; }
+            .btn-search { width: 100%; padding: 13px; }
+        }
     </style>
 </head>
 <body>
+
     <div id="login-screen" class="screen active">
-        <div class="login-box">
-            <h2 style="color:var(--accent); text-align:center; font-family:'IBM Plex Mono',monospace; margin-bottom:20px;">GOV.DATA</h2>
-            <input type="text" id="user" placeholder="Usuário">
-            <input type="password" id="pass" placeholder="Senha">
-            <button class="btn-main" onclick="login()">ENTRAR</button>
+        <div class="login-wrap">
+            <div class="login-badge">
+                <div class="logo-text">Sistema de Auditoria</div>
+                <h1>GOV.DATA</h1>
+                <div class="subtitle">RADAR DE PREÇOS // PNCP</div>
+            </div>
+            <div class="login-box">
+                <div class="field-group">
+                    <label class="field-label">Usuário</label>
+                    <input type="text" id="user" placeholder="Digite seu usuário" autocomplete="username">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Senha</label>
+                    <input type="password" id="pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') login()">
+                </div>
+                <button class="btn-main" onclick="login()">ACESSAR SISTEMA</button>
+                <div class="login-error" id="login-error"></div>
+            </div>
         </div>
     </div>
 
     <div id="app-screen" class="screen">
         <header>
-            <div style="color:var(--accent); font-family:'IBM Plex Mono',monospace; font-weight:bold;">AUDITORIA // PNCP</div>
-            <button onclick="location.reload()" style="background:none; border:1px solid #4a6080; color:#4a6080; padding:5px 10px; cursor:pointer; border-radius:4px;">SAIR</button>
-        </header>
-        <div class="container">
-            <div class="search-card">
-                <input type="text" id="item" placeholder="Digite o produto (ex: caneta)" onkeydown="if(event.key==='Enter') buscar()">
-                <button onclick="buscar()" style="background:var(--accent); border:none; padding:0 25px; border-radius:6px; cursor:pointer; font-weight:bold; color:#000; font-family:'IBM Plex Mono',monospace; white-space:nowrap;">BUSCAR</button>
+            <div class="header-logo">
+                <div class="logo-dot"></div>
+                <div>
+                    <div class="logo-name">GOV.DATA</div>
+                    <div class="logo-tag">Radar de Preços</div>
+                </div>
             </div>
-            <div id="status" style="margin-top:15px; font-size:12px; color:var(--accent); font-family:'IBM Plex Mono',monospace;"></div>
+            <button class="btn-exit" onclick="location.reload()">SAIR</button>
+        </header>
+
+        <div class="container">
+            <div class="page-title">
+                <h2>Consulta de Preços</h2>
+                <p>Pesquise transações registradas no Portal Nacional de Contratações Públicas</p>
+            </div>
+
+            <div class="search-card">
+                <input type="text" id="item" placeholder="Digite o produto (ex: caneta, notebook, papel A4…)" onkeydown="if(event.key==='Enter') buscar()">
+                <button class="btn-search" onclick="buscar()">BUSCAR</button>
+            </div>
+
+            <div id="status"></div>
             <div id="analise"></div>
             <div id="resultados"></div>
         </div>
@@ -57,13 +202,17 @@
         const API_URL = "https://radar-de-precos-eh36.onrender.com";
 
         function login() {
-            const user = document.getElementById('user').value;
+            const user = document.getElementById('user').value.trim();
             const pass = document.getElementById('pass').value;
+            const err  = document.getElementById('login-error');
+
             if (user === "rogerio" && pass === "1234") {
                 document.getElementById('login-screen').classList.remove('active');
                 document.getElementById('app-screen').classList.add('active');
+                err.textContent = '';
             } else {
-                alert("Usuário ou senha incorretos.");
+                err.textContent = '⚠ Usuário ou senha incorretos.';
+                document.getElementById('pass').value = '';
             }
         }
 
@@ -71,47 +220,54 @@
             const termo = document.getElementById('item').value.trim();
             if (!termo) return;
 
-            document.getElementById('status').innerText = ">> CONSULTANDO PNCP...";
-            document.getElementById('resultados').innerHTML = "";
-            document.getElementById('analise').innerHTML = "";
+            const statusEl     = document.getElementById('status');
+            const analiseEl    = document.getElementById('analise');
+            const resultadosEl = document.getElementById('resultados');
+
+            statusEl.innerHTML  = '<span class="spinner"></span> CONSULTANDO PNCP...';
+            analiseEl.innerHTML  = '';
+            resultadosEl.innerHTML = '';
 
             try {
                 const response = await fetch(`${API_URL}?produto=${encodeURIComponent(termo)}`);
-
-                if (!response.ok) {
-                    throw new Error(`Erro HTTP: ${response.status}`);
-                }
-
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const res = await response.json();
 
                 if (res.sucesso && res.mais_opcoes && res.mais_opcoes.length > 0) {
                     const dados = res.mais_opcoes;
-                    document.getElementById('status').innerText = `>> ${dados.length} TRANSAÇÕES ENCONTRADAS.`;
+                    statusEl.textContent = `>> ${dados.length} transação(ões) encontrada(s) no PNCP.`;
 
-                    // Cálculo Preço Aplicável (Regra 20%)
-                    const min = dados[0].preco;
-                    const max = dados[Math.min(2, dados.length - 1)].preco;
+                    const min      = dados[0].preco;
+                    const max      = dados[Math.min(2, dados.length - 1)].preco;
                     const variacao = ((max - min) / min) * 100;
-                    const apto = variacao <= 20;
+                    const apto     = variacao <= 20;
 
-                    document.getElementById('analise').innerHTML = `
+                    analiseEl.innerHTML = `
                         <div class="analysis-badge ${apto ? 'ok' : 'warn'}">
-                            ${apto ? '✅ PREÇO APLICÁVEL: APTO' : '⚠️ ALERTA: VARIAÇÃO ELEVADA'} // DIFERENÇA: ${variacao.toFixed(1)}%
+                            <div class="badge-icon">${apto ? '✅' : '⚠️'}</div>
+                            <div class="badge-content">
+                                <div class="badge-title">${apto ? 'PREÇO APLICÁVEL — APTO' : 'ALERTA: VARIAÇÃO ELEVADA'}</div>
+                                <div class="badge-detail">Diferença entre os 3 menores preços: ${variacao.toFixed(1)}% ${apto ? '(dentro do limite de 20%)' : '(acima do limite de 20%)'}</div>
+                            </div>
                         </div>`;
 
-                    document.getElementById('resultados').innerHTML = dados.map(t => `
-                        <div class="card">
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                                <div style="font-weight:600; font-size:13px; max-width:70%;">${t.orgao}</div>
-                                <div class="price">R$ ${t.preco.toFixed(2)}</div>
-                            </div>
-                            <div style="font-size:10px; color:#4a6080; margin-top:10px;">DATA: ${t.data} | ESFERA: ${t.esfera}</div>
-                        </div>`).join('');
+                    resultadosEl.innerHTML = `<div class="results-grid">${
+                        dados.map((t, i) => `
+                            <div class="card" style="animation-delay:${i * 0.07}s">
+                                <div class="card-org">${t.orgao}</div>
+                                <div class="card-price">R$ ${t.preco.toFixed(2)}</div>
+                                <div class="card-meta">
+                                    <span class="meta-tag">${t.data}</span>
+                                    <span class="meta-tag">${t.esfera}</span>
+                                </div>
+                            </div>`).join('')
+                    }</div>`;
+
                 } else {
-                    document.getElementById('status').innerText = ">> NENHUMA TRANSAÇÃO ENCONTRADA NO PNCP.";
+                    statusEl.textContent = '>> Nenhuma transação encontrada no PNCP para este produto.';
                 }
             } catch (e) {
-                document.getElementById('status').innerText = `>> ERRO DE CONEXÃO COM O SERVIDOR: ${e.message}`;
+                statusEl.innerHTML = `<span style="color:var(--danger)">⚠ Erro de conexão com o servidor: ${e.message}</span>`;
             }
         }
     </script>
