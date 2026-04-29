@@ -2,271 +2,188 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GovPreços - Painel de Auditoria de Licitações</title>
-    <!-- Bibliotecas Necessárias -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Pesquisa de Preços Gov</title>
     <script src="https://cloudflare.com"></script>
-    <link rel="stylesheet" href="https://cloudflare.com">
-    
+    <link href="https://googleapis.com" rel="stylesheet">
     <style>
         :root {
-            --primary: #0a2540;
-            --secondary: #4a5568;
-            --light-bg: #f7fafc;
-            --border-color: #e2e8f0;
-            --success: #10b981;
-            --warning: #f59e0b;
+            --bg: #05080f; --surface: #0d1420; --surface2: #131d2e;
+            --border: rgba(0, 180, 255, 0.13); --accent: #00b4ff;
+            --accent2: #00e5a0; --danger: #ff4f4f; --warn: #ffb84f;
+            --text: #dce8f5; --muted: #4a6080;
+            --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
         }
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: var(--light-bg); margin: 0; padding: 0; color: #1a202c; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); }
         
-        /* Sistema de Telas */
-        .page { display: none; min-height: 100vh; }
-        .page.active { display: flex; }
+        /* Telas */
+        #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: radial-gradient(ellipse at 50% 0%, #00253a 0%, var(--bg) 65%); padding: 20px; }
+        #app-screen { display: none; flex-direction: column; min-height: 100vh; }
         
-        /* Tela de Login */
-        #login-page { justify-content: center; align-items: center; background-color: var(--primary); }
-        .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); width: 100%; max-width: 400px; }
-        .login-card h2 { color: var(--primary); text-align: center; margin-bottom: 8px; font-size: 24px; }
-        .login-card p { color: var(--secondary); text-align: center; margin-bottom: 24px; font-size: 14px; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 14px; color: #4a5568; }
-        .form-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
-        .btn-primary { background-color: var(--primary); color: white; }
-        .btn-primary:hover { background-color: #031525; }
+        /* Login */
+        .login-box { width: 100%; max-width: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 26px; display: flex; flex-direction: column; gap: 14px; }
+        .lbl { font-size: 10px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; font-family: var(--mono); margin-bottom: 5px; display: block; }
+        input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 13px; color: var(--text); outline: none; }
+        .btn-primary { background: var(--accent); color: var(--bg); border: none; border-radius: 8px; padding: 14px; font-weight: 700; font-family: var(--mono); cursor: pointer; letter-spacing: 1px; }
+
+        /* App Layout */
+        .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 15px; display: flex; justify-content: space-between; align-items: center; sticky: top; }
+        .search-area { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .search-row { display: flex; gap: 10px; }
+        .search-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: white; }
+        .btn-search { background: var(--accent); color: var(--bg); border: none; border-radius: 10px; padding: 0 15px; cursor: pointer; }
+
+        /* Analise e Cards */
+        .results { padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .analysis-card { border-radius: 12px; padding: 15px; border: 1px solid var(--border); margin-bottom: 10px; }
+        .analysis-card.ok { border-color: var(--accent2); background: rgba(0, 229, 160, 0.05); }
+        .analysis-card.warn { border-color: var(--danger); background: rgba(255, 79, 79, 0.05); }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 10px; }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .card-orgao { font-size: 13px; font-weight: 600; color: var(--text); }
+        .card-valor { font-family: var(--mono); color: var(--accent2); font-weight: 700; }
+        .row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: var(--muted); }
+        .row span:last-child { color: var(--text); font-family: var(--mono); }
         
-        /* Tela Principal (Dashboard) */
-        #app-page { flex-direction: column; }
-        header { background-color: white; border-bottom: 1px solid var(--border-color); padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; }
-        header h1 { margin: 0; font-size: 18px; color: var(--primary); font-weight: 600; }
-        .logout-btn { background: none; border: 1px solid #cbd5e0; color: #4a5568; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        
-        main { padding: 40px; max-width: 1400px; margin: 0 auto; width: 100%; }
-        
-        /* Barra de Busca */
-        .search-container { background: white; padding: 24px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 32px; }
-        .search-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; }
-        
-        /* Títulos de Seção */
-        .section-title { color: var(--primary); font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-        
-        /* Cards de Sugestão (As 3 Transações) */
-        .top-results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
-        .card { background: white; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); position: relative; }
-        .card.selected { border-color: var(--success); box-shadow: 0 0 0 1px var(--success); }
-        .card .price { font-size: 24px; font-weight: 700; color: var(--success); margin: 8px 0; }
-        .card .orgao { font-size: 12px; color: var(--secondary); font-weight: 500; text-transform: uppercase; }
-        
-        /* Tabela Profissional */
-        .table-container { background: white; border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; }
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
-        th, td { padding: 14px 16px; border-bottom: 1px solid var(--border-color); }
-        th { background-color: #f8fafc; color: #4a5568; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; }
-        tr:hover { background-color: #f8fafc; }
-        
-        .btn-report { background-color: var(--success); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; float: right; margin-top: 24px; }
-        .btn-report:hover { background-color: #059669; }
-        
-        input[type="checkbox"] { transform: scale(1.1); cursor: pointer; }
+        .status-bar { margin: 0 15px; padding: 10px; border-radius: 8px; font-size: 12px; font-family: var(--mono); display: none; }
+        .btn-export { background: var(--surface2); color: var(--accent); border: 1px solid var(--border); padding: 12px; border-radius: 10px; cursor: pointer; font-family: var(--mono); margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <!-- TELA DE LOGIN -->
-    <div id="login-page" class="page active">
-        <div class="login-card">
-            <h2>GovPreços</h2>
-            <p>Faça login para acessar os dados do portal nacional</p>
-            <div class="form-group">
-                <label>Usuário</label>
-                <input type="text" id="username" placeholder="Digite seu usuário">
-            </div>
-            <div class="form-group">
-                <label>Senha</label>
-                <input type="password" id="password" placeholder="Digite sua senha">
-            </div>
-            <button class="btn btn-primary" onclick="executarLogin()">Acessar Painel</button>
-            <p id="login-error" style="color: #e53e3e; text-align: center; margin-top: 12px; display: none;">Credenciais incorretas.</p>
+    <div id="login-screen">
+        <div style="text-align:center; margin-bottom: 20px;">
+            <div style="background:var(--accent); color:var(--bg); font-size:10px; padding:4px 10px; font-family:var(--mono); letter-spacing:2px; display:inline-block; border-radius:2px;">GOV · LICITAÇÕES</div>
+            <h1 style="font-family:var(--mono); color:white; margin-top:10px;">Pesquisa de Preços</h1>
+        </div>
+        <div class="login-box">
+            <div><label class="lbl">Usuário</label><input type="text" id="inp-user" placeholder="rogerio"></div>
+            <div><label class="lbl">Senha</label><input type="password" id="inp-pass" placeholder="****"></div>
+            <div id="login-err" style="color:var(--danger); font-size:11px; display:none;">Credenciais incorretas.</div>
+            <button class="btn-primary" onclick="doLogin()">ENTRAR</button>
         </div>
     </div>
 
-    <!-- TELA DO APLICATIVO -->
-    <div id="app-page" class="page">
-        <header>
-            <h1>Painel de Transações Governamentais</h1>
+    <div id="app-screen">
+        <div class="topbar">
             <div>
-                <span style="font-size: 14px; color: #4a5568; margin-right: 16px;">Operador: <strong id="user-display"></strong></span>
-                <button class="logout-btn" onclick="executarLogout()">Sair</button>
+                <div style="font-family:var(--mono); color:var(--accent); font-size:14px; font-weight:700;">PREÇOS GOV</div>
+                <div style="font-size:10px; color:var(--muted);">Lei 14.133/2021 · Últimos 5 meses</div>
             </div>
-        </header>
+            <button onclick="doLogout()" style="background:none; border:1px solid var(--border); color:var(--muted); padding:5px 10px; border-radius:5px; cursor:pointer;">SAIR</button>
+        </div>
 
-        <main>
-            <!-- Painel de Filtros -->
-            <div class="search-container">
-                <div class="search-grid">
-                    <div class="form-group">
-                        <label>Item / Produto</label>
-                        <input type="text" id="search-item" value="Caneta" placeholder="Digite o produto">
-                    </div>
-                    <div class="form-group">
-                        <label>Valor Mínimo (R$)</label>
-                        <input type="number" id="min-price" placeholder="Menor valor automático" step="0.01">
-                    </div>
-                    <div class="form-group" style="display: flex; align-items: flex-end;">
-                        <button class="btn btn-primary" onclick="executarBusca()"><i class="fa-solid fa-magnifying-glass"></i> Pesquisar Transações</button>
-                    </div>
-                </div>
+        <div class="search-area">
+            <div class="search-row">
+                <input class="search-input" id="inp-search" type="text" placeholder="Ex: Cadeira Ergonômica">
+                <button class="btn-search" onclick="buscar()">🔍</button>
             </div>
+        </div>
 
-            <!-- Sugestão Ideal -->
-            <div class="section-title">
-                <span>🎯 Sugestão Ideal (Variação máxima de 20% | Últimos 5 meses)</span>
-            </div>
-            <div class="top-results" id="top-results-container"></div>
-
-            <!-- Mais Opções -->
-            <div class="section-title">
-                <span>🔍 Histórico Geral Encontrado</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 50px;">Sel.</th>
-                            <th>Valor Unitário</th>
-                            <th>Órgão Comprador</th>
-                            <th>Esfera</th>
-                            <th>Data</th>
-                            <th>Fornecedor / CNPJ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="all-results-table"></tbody>
-                </table>
-            </div>
-
-            <button class="btn btn-report" onclick="gerarRelatorioPDF()"><i class="fa-solid fa-file-pdf"></i> Gerar Relatório PDF/A</button>
-        </main>
+        <div id="status-bar" class="status-bar"></div>
+        <div class="results" id="results"></div>
     </div>
 
     <script>
-        // ATENÇÃO: Substitua o link abaixo pela URL que o Render te deu
+        // CONFIGURAÇÃO: COLOQUE SEU LINK DO RENDER AQUI
         const URL_API = "https://onrender.com";
-        
-        let transacoesCache = [];
-        let selecionados = [];
 
-        function executarLogin() {
-            const user = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
-            if (user === "Rogerio" && pass === "1234") {
-                document.getElementById('login-page').classList.remove('active');
-                document.getElementById('app-page').classList.add('active');
-                document.getElementById('user-display').innerText = user;
-                executarBusca();
+        let dadosAtuais = [];
+
+        function doLogin() {
+            const u = document.getElementById('inp-user').value.toLowerCase();
+            const p = document.getElementById('inp-pass').value;
+            if (u === "rogerio" && p === "1234") {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-screen').style.display = 'flex';
             } else {
-                document.getElementById('login-error').style.display = 'block';
+                document.getElementById('login-err').style.display = 'block';
             }
         }
 
-        function executarLogout() {
-            document.getElementById('app-page').classList.remove('active');
-            document.getElementById('login-page').classList.add('active');
-            document.getElementById('password').value = '';
-            document.getElementById('login-error').style.display = 'none';
+        function doLogout() { location.reload(); }
+
+        function setStatus(msg, type) {
+            const bar = document.getElementById('status-bar');
+            bar.style.display = 'block';
+            bar.innerText = msg;
+            bar.style.color = type === 'error' ? 'var(--danger)' : 'var(--accent2)';
         }
 
-        async function executarBusca() {
-            const produto = document.getElementById('search-item').value;
-            const valMin = document.getElementById('min-price').value;
+        async function buscar() {
+            const termo = document.getElementById('inp-search').value;
+            if(!termo) return;
             
-            let url = `${URL_API}?produto=${encodeURIComponent(produto)}`;
-            if(valMin) url += `&valor_minimo=${valMin}`;
+            setStatus("Buscando no Portal Nacional...", "info");
+            document.getElementById('results').innerHTML = "";
 
             try {
-                const response = await fetch(url);
-                const dados = await response.json();
+                const response = await fetch(`${URL_API}?produto=${encodeURIComponent(termo)}`);
+                const data = await response.json();
                 
-                if (dados.sucesso) {
-                    transacoesCache = dados.mais_opcoes;
-                    selecionados = dados.sugestao_ideal.map(t => t.id);
-                    renderizarInterface(dados.sugestao_ideal, dados.mais_opcoes);
+                if(data.sucesso && data.mais_opcoes.length > 0) {
+                    dadosAtuais = data.mais_opcoes;
+                    setStatus(data.mais_opcoes.length + " registros encontrados", "ok");
+                    renderizar(data.sugestao_ideal, data.mais_opcoes);
+                } else {
+                    setStatus("Nenhum registro encontrado.", "error");
                 }
-            } catch (error) {
-                alert("Erro ao conectar com o servidor do Render. Verifique a URL.");
+            } catch (e) {
+                setStatus("Erro ao conectar com o servidor Render.", "error");
             }
         }
 
-        function renderizarInterface(ideais, todas) {
-            const topContainer = document.getElementById('top-results-container');
-            topContainer.innerHTML = '';
-            ideais.forEach(item => {
-                topContainer.innerHTML += `
-                    <div class="card selected">
-                        <div class="orgao">${item.orgao}</div>
-                        <div class="price">R$ ${item.preco.toFixed(2)}</div>
-                        <div style="font-size: 11px; color: var(--secondary);">Data: ${item.data} | Esfera: ${item.esfera}</div>
-                    </div>`;
-            });
+        function renderizar(ideais, todos) {
+            const container = document.getElementById('results');
+            
+            // Cálculo de variação (Regra dos 20%)
+            let analiseHtml = "";
+            if(ideais.length >= 2) {
+                const min = ideais[0].preco;
+                const max = ideais[ideais.length-1].preco;
+                const varPct = ((max - min) / min) * 100;
+                const apto = varPct <= 20;
+                
+                analiseHtml = `
+                    <div class="analysis-card ${apto ? 'ok' : 'warn'}">
+                        <div style="font-family:var(--mono); font-size:12px; font-weight:700;">
+                            ${apto ? '✅ APTOS (VARIAÇÃO: ' : '⚠️ ALERTA (VARIAÇÃO: '}${varPct.toFixed(1)}%)
+                        </div>
+                        <div style="font-size:10px; color:var(--muted); margin-top:5px;">
+                            Limite de 20% conforme Art. 23 da Lei 14.133/2021.
+                        </div>
+                    </div>
+                `;
+            }
 
-            const tableBody = document.getElementById('all-results-table');
-            tableBody.innerHTML = '';
-            todas.forEach(item => {
-                const isSelected = selecionados.includes(item.id) ? 'checked' : '';
-                tableBody.innerHTML += `
-                    <tr>
-                        <td style="text-align: center;">
-                            <input type="checkbox" ${isSelected} onchange="toggleSelecao(${item.id})">
-                        </td>
-                        <td style="font-weight: 600; color: var(--success);">R$ ${item.preco.toFixed(2)}</td>
-                        <td>${item.orgao}</td>
-                        <td>${item.esfera}</td>
-                        <td>${item.data}</td>
-                        <td>
-                            <div>${item.fornecedor}</div>
-                            <div style="font-size: 11px; color: #a0aec0;">CNPJ: ${item.cnpj}</div>
-                        </td>
-                    </tr>`;
-            });
+            let cardsHtml = todos.map(t => `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-orgao">${t.orgao}</div>
+                        <div class="card-valor">R$ ${t.preco.toFixed(2)}</div>
+                    </div>
+                    <div class="row"><span>Data:</span><span>${t.data}</span></div>
+                    <div class="row"><span>Esfera:</span><span>${t.esfera}</span></div>
+                    <div class="row"><span>Fornecedor:</span><span>${t.fornecedor}</span></div>
+                </div>
+            `).join('');
+
+            container.innerHTML = analiseHtml + `<button class="btn-export" onclick="gerarPDF()">📄 GERAR RELATÓRIO PDF/A</button>` + cardsHtml;
         }
 
-        function toggleSelecao(id) {
-            const index = selecionados.indexOf(id);
-            if (index > -1) selecionados.splice(index, 1);
-            else selecionados.push(id);
-        }
-
-        function gerarRelatorioPDF() {
+        function gerarPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            
-            const itensParaImprimir = transacoesCache.filter(t => selecionados.includes(t.id));
-            
-            doc.setFillColor(10, 37, 64);
-            doc.rect(0, 0, 210, 25, 'F');
-            doc.setTextColor(255, 255, 255);
             doc.setFontSize(16);
-            doc.text("Relatório de Pesquisa de Preços Públicos", 15, 16);
-            
-            doc.setTextColor(26, 32, 44);
-            doc.setFontSize(11);
+            doc.text("Relatório de Preços Governamentais", 20, 20);
             let y = 35;
-            
-            itensParaImprimir.forEach((t, index) => {
-                if(y > 270) { doc.addPage(); y = 20; }
-                doc.setFont("helvetica", "bold");
-                doc.text(`${index + 1}. Valor Unitário: R$ ${t.preco.toFixed(2)}`, 15, y);
-                doc.setFont("helvetica", "normal");
-                y += 6;
-                doc.text(`Órgão: ${t.orgao} | Esfera: ${t.esfera} | Data: ${t.data}`, 15, y);
-                y += 6;
-                doc.text(`Fornecedor: ${t.fornecedor} | CNPJ: ${t.cnpj}`, 15, y);
-                y += 10;
-                doc.line(15, y, 195, y);
-                y += 10;
+            dadosAtuais.slice(0, 10).forEach(d => {
+                doc.setFontSize(10);
+                doc.text(`${d.data} - R$ ${d.preco.toFixed(2)} - ${d.orgao}`, 20, y);
+                y += 7;
             });
-            
-            doc.save("Relatorio_PNCP.pdf");
+            doc.save("relatorio_precos.pdf");
         }
     </script>
 </body>
