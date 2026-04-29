@@ -9,7 +9,6 @@
         :root {
             --bg: #050a12;
             --surface: #0b1220;
-            --surface2: #111b2e;
             --accent: #00c8ff;
             --accent2: #0066ff;
             --success: #00f0a0;
@@ -58,7 +57,6 @@
         .screen { display: none; position: relative; z-index: 1; }
         .active { display: block; }
 
-        /* LOGIN */
         #login-screen { min-height: 100vh; display: none; align-items: center; justify-content: center; }
         #login-screen.active { display: flex; }
 
@@ -85,7 +83,6 @@
 
         .login-error { font-size: 11px; color: var(--danger); text-align: center; margin-top: 12px; font-family: 'Space Mono', monospace; min-height: 16px; }
 
-        /* HEADER */
         header { padding: 0 40px; height: 60px; background: rgba(11,18,32,0.85); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
 
         .header-logo { display: flex; align-items: center; gap: 12px; }
@@ -96,7 +93,6 @@
         .btn-exit { background: none; border: 1px solid rgba(74,106,138,0.4); color: var(--text-dim); padding: 6px 14px; cursor: pointer; border-radius: 6px; font-size: 11px; font-family: 'Space Mono', monospace; letter-spacing: 1px; transition: all 0.2s; }
         .btn-exit:hover { border-color: var(--danger); color: var(--danger); }
 
-        /* MAIN */
         .container { padding: 40px; max-width: 1000px; margin: 0 auto; width: 100%; }
 
         .page-title { margin-bottom: 30px; }
@@ -126,7 +122,8 @@
         .card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
         .card:hover::after { opacity: 1; }
 
-        .card-org { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; margin-bottom: 14px; }
+        .card-org { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; margin-bottom: 8px; }
+        .card-desc { font-size: 11px; color: var(--text-dim); margin-bottom: 14px; line-height: 1.4; }
         .card-price { color: var(--success); font-family: 'Space Mono', monospace; font-weight: 700; font-size: 22px; letter-spacing: -0.5px; }
         .card-meta { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
         .meta-tag { font-size: 9px; font-family: 'Space Mono', monospace; letter-spacing: 1px; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.04); color: var(--text-dim); border: 1px solid var(--border); }
@@ -199,6 +196,7 @@
     </div>
 
     <script>
+        // ✅ URL correta apontando para a rota /buscar
         const API_URL = "https://radar-de-precos-eh36.onrender.com";
 
         function login() {
@@ -224,19 +222,23 @@
             const analiseEl    = document.getElementById('analise');
             const resultadosEl = document.getElementById('resultados');
 
-            statusEl.innerHTML  = '<span class="spinner"></span> CONSULTANDO PNCP...';
-            analiseEl.innerHTML  = '';
+            statusEl.innerHTML     = '<span class="spinner"></span> CONSULTANDO PNCP...';
+            analiseEl.innerHTML    = '';
             resultadosEl.innerHTML = '';
 
             try {
-                const response = await fetch(`${API_URL}?produto=${encodeURIComponent(termo)}`);
+                // ✅ Rota correta: /buscar
+                const response = await fetch(`${API_URL}/buscar?produto=${encodeURIComponent(termo)}`);
+
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
                 const res = await response.json();
 
                 if (res.sucesso && res.mais_opcoes && res.mais_opcoes.length > 0) {
                     const dados = res.mais_opcoes;
                     statusEl.textContent = `>> ${dados.length} transação(ões) encontrada(s) no PNCP.`;
 
+                    // Regra dos 20%
                     const min      = dados[0].preco;
                     const max      = dados[Math.min(2, dados.length - 1)].preco;
                     const variacao = ((max - min) / min) * 100;
@@ -253,12 +255,15 @@
 
                     resultadosEl.innerHTML = `<div class="results-grid">${
                         dados.map((t, i) => `
-                            <div class="card" style="animation-delay:${i * 0.07}s">
+                            <div class="card" style="animation-delay:${i * 0.06}s">
                                 <div class="card-org">${t.orgao}</div>
+                                ${t.descricao ? `<div class="card-desc">${t.descricao}</div>` : ''}
                                 <div class="card-price">R$ ${t.preco.toFixed(2)}</div>
                                 <div class="card-meta">
                                     <span class="meta-tag">${t.data}</span>
                                     <span class="meta-tag">${t.esfera}</span>
+                                    ${t.uf ? `<span class="meta-tag">${t.uf}${t.municipio ? ' · ' + t.municipio : ''}</span>` : ''}
+                                    ${t.unidade ? `<span class="meta-tag">${t.unidade}</span>` : ''}
                                 </div>
                             </div>`).join('')
                     }</div>`;
@@ -266,6 +271,7 @@
                 } else {
                     statusEl.textContent = '>> Nenhuma transação encontrada no PNCP para este produto.';
                 }
+
             } catch (e) {
                 statusEl.innerHTML = `<span style="color:var(--danger)">⚠ Erro de conexão com o servidor: ${e.message}</span>`;
             }
